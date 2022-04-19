@@ -1,0 +1,118 @@
+---
+title: "EDA_amy"
+author: "Amy Pitts"
+date: '2022-04-19'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readxl)
+library(tidyverse)
+library(gtsummary)
+library(mice)
+```
+
+## Load Data
+
+```{r}
+df = read_excel("Proj 4 data.xlsx") %>%
+  janitor::clean_names() %>%
+  mutate(
+    group = factor(group),
+    time_int = case_when(
+      time == 1 ~ "baseline",
+      time == 2 ~ "6-month",
+      time == 3 ~ "12-month"
+    ),
+    time_int = factor(time_int, levels = c("baseline", "6-month","12-month"))
+  )
+df %>% head()
+```
+
+Data Summary
+```{r}
+df %>% select(-c(id, time)) %>%
+  tbl_summary(by=group) %>%
+  add_overall() 
+
+
+# at baseline 
+df %>% select(-id) %>%
+  filter(time == 1) %>%
+  select(group, sfd) %>%
+  tbl_summary(by=group) %>%
+  add_overall() %>%
+  add_p()
+```
+
+
+Spaghetti plot 
+
+```{r}
+df %>%
+  mutate(
+    group = ifelse(group == 0 , "Control", "Intervention")
+  ) %>% 
+  ggplot(aes(y=sfd, x=time_int, group=id, color = group))+
+  geom_point() +
+  geom_line() +
+  facet_wrap(~school) +
+  labs(
+    title = "Symptom free Asthma days by School ",
+    y = "Symptom free days in the past two weeks"
+  )
+```
+
+Why is there is someone that had zero days? 
+
+```{r}
+df %>% 
+  filter(sfd == 0) %>%
+  select(id) %>%
+  group_by(id) %>% 
+  count() %>%
+  arrange(desc(n))
+```
+
+So there is one person who didn't have any symptoms in the time span. So that is kinda weird... 
+
+There are 5 people with only 2 zero days. 
+```{r}
+df %>% 
+  filter(id %in% c("2009_1", "3011_1", "3022_1", "4014_1", "4024_1")) %>%
+  filter(sfd != 0)
+```
+
+Not all on the middle obs but some are.... 
+
+
+Missing data 
+
+```{r}
+data_spread_day = df %>% 
+  pivot_wider(names_from = time_int, 
+              id_cols = id,
+              #names_prefix = "day",
+              values_from = sfd
+              )
+
+data_spread_day %>%
+ select(-c(id)) %>%
+  md.pattern(rotate.names = TRUE)
+```
+
+So the 3 people that have missing obs for all `sfd` are just going to be excluded. 
+
+As long as the people have baseline obs then we can used them. So 14 people with have observations extrapolated. 
+
+
+
+
+
+
+
+
+
+
