@@ -135,7 +135,7 @@ Thus the total variance of an observation $Y_{ij}$ and the covariance between ob
 $$Var(Y_{ij}) = \sigma^2 = \sigma^2_b + \sigma^2_w$$
 
 $$Cov(Y_{ij}, Y_{ik}) = Var (\mu_i) = \sigma_b^2$$
-Thus the correlation amoing subunits within a cluster equals $\rho = \frac{\sigma^2_b}{\sigma^2}$. This correlation is the same accross all subunits and is called the compoind symmetry model in the repeated measures context. 
+Thus the correlation among subunits within a cluster equals $\rho = \frac{\sigma^2_b}{\sigma^2}$. This correlation is the same across all subunits and is called the compoind symmetry model in the repeated measures context. 
 
 
 
