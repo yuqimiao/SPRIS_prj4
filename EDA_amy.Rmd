@@ -38,6 +38,12 @@ df %>% select(-c(id, time)) %>%
   add_overall() 
 
 
+df %>% select(-c(id, time)) %>%
+  filter(time_int == "baseline") %>%
+  tbl_summary(by=group) %>%
+  add_overall() 
+
+
 # at baseline 
 df %>% select(-id) %>%
   filter(time == 1) %>%
@@ -107,7 +113,29 @@ So the 3 people that have missing obs for all `sfd` are just going to be exclude
 
 As long as the people have baseline obs then we can used them. So 14 people with have observations extrapolated. 
 
+We want to compare Group Intervention vs Group Control. 
 
+Let the observations be denoted 
+
+$$Y_{ij} = 1, \dots, n \ \ (\textrm{main unit}); \ \  j=1, \dots, m_i \ \ (\textrm{subunit})$$
+Note that $m_1 \not= m_2$ so that that main units do not contain the same number of subunits. 
+
+A random effect model is useful to induce to induce the correlation among the subunits as follows: 
+
+$$Y_{ij} = \mu_i + e_{ij}$$
+
+$ \mu_i$ and $e_{ij}$ are independent. 
+
+The between-cluster variability is: $E[\mu_i] = \mu_y$, $Var(\mu_i) = \sigma_b^2$
+
+The within-cluster, between-subunit variability is: $E[e_{ij}] = 0$, $Var(e_{ij}) = \sigma^2_w $
+
+Thus the total variance of an observation $Y_{ij}$ and the covariance between observations is $Y_{ij}$ and $Y_{ik}$ within the $i$th cluster are 
+
+$$Var(Y_{ij}) = \sigma^2 = \sigma^2_b + \sigma^2_w$$
+
+$$Cov(Y_{ij}, Y_{ik}) = Var (\mu_i) = \sigma_b^2$$
+Thus the correlation amoing subunits within a cluster equals $\rho = \frac{\sigma^2_b}{\sigma^2}$. This correlation is the same accross all subunits and is called the compoind symmetry model in the repeated measures context. 
 
 
 
