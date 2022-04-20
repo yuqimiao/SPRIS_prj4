@@ -12,6 +12,8 @@ library(readxl)
 library(tidyverse)
 library(gtsummary)
 library(mice)
+library(lme4)
+
 ```
 
 ## Load Data
@@ -26,9 +28,14 @@ df = read_excel("Proj 4 data.xlsx") %>%
       time == 2 ~ "6-month",
       time == 3 ~ "12-month"
     ),
-    time_int = factor(time_int, levels = c("baseline", "6-month","12-month"))
-  )
+    time_int = factor(time_int, levels = c("baseline", "6-month","12-month")),
+    school = factor(school)
+  ) %>%
+  separate(id, c("id", "one"), sep="_") %>%
+  select(-one) %>%
+  mutate(id = as.numeric(id))
 df %>% head()
+
 ```
 
 Data Summary
@@ -69,7 +76,28 @@ df %>%
     title = "Symptom free Asthma days by School ",
     y = "Symptom free days in the past two weeks"
   )
+
 ```
+
+```{r}
+df %>%
+  mutate(
+    group = ifelse(group == 0 , "Control", "Intervention")
+  ) %>% 
+  ggplot(aes(x=sfd, fill = group))+
+  geom_histogram(position = "identity", alpha = 0.7) +
+  facet_grid(group~time_int) +
+  labs(
+    title = "Symptom free Asthma days by School ",
+    y = "Count"
+  )
+
+```
+
+Want to use sfd_reverse so we are looking at days where there are symptoms. 
+
+
+
 
 Why is there is someone that had zero days? 
 
@@ -87,7 +115,7 @@ So there is one person who didn't have any symptoms in the time span. So that is
 There are 5 people with only 2 zero days. 
 ```{r}
 df %>% 
-  filter(id %in% c("2009_1", "3011_1", "3022_1", "4014_1", "4024_1")) %>%
+  filter(id %in% c("2009", "3011", "3022", "4014", "4024")) %>%
   filter(sfd != 0)
 ```
 
@@ -98,11 +126,12 @@ Missing data
 
 ```{r}
 data_spread_day = df %>% 
-  pivot_wider(names_from = time_int, 
-              id_cols = id,
-              #names_prefix = "day",
-              values_from = sfd
-              )
+  pivot_wider(
+    names_from = time_int, 
+    id_cols = id,
+    #names_prefix = "day",
+    values_from = sfd
+)
 
 data_spread_day %>%
  select(-c(id)) %>%
@@ -139,8 +168,199 @@ Thus the correlation among subunits within a cluster equals $\rho = \frac{\sigma
 
 
 
+### Binomial Model 
+
+The Model in question: 
+
+$Y_i \sim Bin(14, p_i)$. \textbf{Need to check assumption of indepencence!}
+
+Let $i$ be subject, $j \in (1,2,3,4)$ be school, and $k \in (1,2,3)$ by the measurement 
+
+\[ 
+\log \left(\frac{p_{ijk}}{1-p_{ijk}} \right) = \beta_0 + \beta_1 School_{ij} + \beta_2 Treat_{i} 
++ \beta_3 time_{ijk} + \beta_4 Treat_i \times time_{ijk} + \alpha_{0i} + \alpha_{0j} + \epsilon_{ijk}
+\]
+
+Where $\alpha_{0i}$ and $\alpha_{0j}$ are random intercept for subject and school. 
 
 
+- one model with continuous time 
+
+- one model with categorical time 
+
+
+[This is a interesting resrouce on negative binomial](https://www.nature.com/articles/s41598-020-73883-7)
+
+## Time as Continous
+
+```{r}
+
+m.p <- glmer(sfd ~ school + group + time + time * group + (1|id) + (1|school), 
+              data = df, 
+              family = poisson)
+summary(m.p)
+
+
+m.nb <- glmer.nb(sfd ~ school + group + time + time * group + (1|id) + (1|school), 
+              data = df, 
+              verbose=TRUE)
+
+summary(m.nb)
+## The neg.binomial theta parameter:
+#getME(m.nb, "glmer.nb.theta")
+
+var_names = c("intercept", "school2", "school3", "school4", "time", "group1:time")
+mod.nb <- summary(m.nb)
+mod.p <- summary(m.p)
+
+est_nb_df = mod.nb$coefficients %>% as_tibble() %>%
+  janitor::clean_names() %>% 
+  mutate(var_names = var_names) %>%
+  relocate(var_names) %>%
+  rename(est_nb = estimate,
+         p_nb = pr_z) %>%
+  select(var_names, est_nb, p_nb)
+est_nb_p = mod.p$coefficients %>% as_tibble() %>%
+   janitor::clean_names() %>% 
+  mutate(var_names = var_names) %>%
+  relocate(var_names) %>%
+  rename(est_p = estimate,
+         p_p = pr_z) %>%
+  select(var_names, est_p, p_p)
+
+full_join(est_nb_df, est_nb_p, by="var_names") %>% 
+  mutate_at(2:5, round, 3)
+```
+
+```{r}
+m.p <- glmer(sfd ~  group + time + time * group + (1|id) + (1|school), 
+              data = df, 
+              family = poisson)
+summary(m.p)
+
+
+m.nb <- glmer.nb(sfd ~ group + time + time * group + (1|id) + (1|school), 
+              data = df, 
+              verbose=TRUE)
+
+summary(m.nb)
+## The neg.binomial theta parameter:
+#getME(m.nb, "glmer.nb.theta")
+
+var_names = c("intercept", "group1", "time", "group1:time")
+mod.nb <- summary(m.nb)
+mod.p <- summary(m.p)
+
+est_nb_df = mod.nb$coefficients %>% as_tibble() %>%
+  janitor::clean_names() %>% 
+  mutate(var_names = var_names) %>%
+  relocate(var_names) %>%
+  rename(est_nb = estimate,
+         p_nb = pr_z) %>%
+  select(var_names, est_nb, p_nb)
+est_nb_p = mod.p$coefficients %>% as_tibble() %>%
+   janitor::clean_names() %>% 
+  mutate(var_names = var_names) %>%
+  relocate(var_names) %>%
+  rename(est_p = estimate,
+         p_p = pr_z) %>%
+  select(var_names, est_p, p_p)
+
+full_join(est_nb_df, est_nb_p, by="var_names") %>% 
+  mutate_at(2:5, round, 3)
+```
+
+
+# Time as Categorical
+
+```{r}
+df1 = df %>% mutate(time = factor(time))
+m.p <- glmer(sfd ~  school + time + time * group + (1|id) + (1|school), 
+              data = df1, 
+              family = poisson)
+summary(m.p)
+
+
+m.nb <- glmer.nb(sfd ~ school + time + time * group + (1|id) + (1|school), 
+              data = df1, 
+              verbose=TRUE)
+
+summary(m.nb)
+## The neg.binomial theta parameter:
+#getME(m.nb, "glmer.nb.theta")
+
+var_names = c("intercept", "school2","school3","school4", "time2", "time3", "group1:time2","group1:time3")
+mod.nb <- summary(m.nb)
+mod.p <- summary(m.p)
+
+est_nb_df = mod.nb$coefficients %>% as_tibble() %>%
+  janitor::clean_names() %>% 
+  mutate(var_names = var_names) %>%
+  relocate(var_names) %>%
+  rename(est_nb = estimate,
+         p_nb = pr_z) %>%
+  select(var_names, est_nb, p_nb)
+est_nb_p = mod.p$coefficients %>% as_tibble() %>%
+   janitor::clean_names() %>% 
+  mutate(var_names = var_names) %>%
+  relocate(var_names) %>%
+  rename(est_p = estimate,
+         p_p = pr_z) %>%
+  select(var_names, est_p, p_p)
+
+full_join(est_nb_df, est_nb_p, by="var_names") %>% 
+  mutate_at(2:5, round, 3)
+```
+
+
+```{r}
+df1 = df %>% mutate(time = factor(time))
+m.p <- glmer(sfd ~  group + time + time * group + (1|id) + (1|school), 
+              data = df1, 
+              family = poisson)
+summary(m.p)
+
+
+m.nb <- glmer.nb(sfd ~ group + time + time * group + (1|id) + (1|school), 
+              data = df1, 
+              verbose=TRUE)
+
+summary(m.nb)
+## The neg.binomial theta parameter:
+#getME(m.nb, "glmer.nb.theta")
+
+var_names = c("intercept", "group1", "time2", "time3", "group1:time2","group1:time3")
+mod.nb <- summary(m.nb)
+mod.p <- summary(m.p)
+
+est_nb_df = mod.nb$coefficients %>% as_tibble() %>%
+  janitor::clean_names() %>% 
+  mutate(var_names = var_names) %>%
+  relocate(var_names) %>%
+  rename(est_nb = estimate,
+         p_nb = pr_z) %>%
+  select(var_names, est_nb, p_nb)
+est_nb_p = mod.p$coefficients %>% as_tibble() %>%
+   janitor::clean_names() %>% 
+  mutate(var_names = var_names) %>%
+  relocate(var_names) %>%
+  rename(est_p = estimate,
+         p_p = pr_z) %>%
+  select(var_names, est_p, p_p)
+
+full_join(est_nb_df, est_nb_p, by="var_names") %>% 
+  mutate_at(2:5, round, 3)
+```
+
+
+
+
+
+### Sample Size Power Stuff 
+
+[PASS all](https://www.ncss.com/software/pass/pass-documentation/)
+
+[Resource:](https://www.ncss.com/wp-content/themes/ncss/pdf/Procedures/PASS/Mixed_Models_Tests_for_Two_Means_in_a_2-Level_Hierarchical_Design-Level-2_Randomization.pdf)
 
 
 
