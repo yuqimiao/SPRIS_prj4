@@ -203,7 +203,7 @@ summary(m.p)
 
 m.nb <- glmer.nb(sfd ~ school + group + time + time * group + (1|id) + (1|school), 
               data = df, 
-              verbose=TRUE)
+              verbose=FALSE)
 
 summary(m.nb)
 ## The neg.binomial theta parameter:
@@ -241,7 +241,7 @@ summary(m.p)
 
 m.nb <- glmer.nb(sfd ~ group + time + time * group + (1|id) + (1|school), 
               data = df, 
-              verbose=TRUE)
+              verbose=FALSE)
 
 summary(m.nb)
 ## The neg.binomial theta parameter:
@@ -283,7 +283,7 @@ summary(m.p)
 
 m.nb <- glmer.nb(sfd ~ school + time + time * group + (1|id) + (1|school), 
               data = df1, 
-              verbose=TRUE)
+              verbose=FALSE)
 
 summary(m.nb)
 ## The neg.binomial theta parameter:
@@ -323,7 +323,7 @@ summary(m.p)
 
 m.nb <- glmer.nb(sfd ~ group + time + time * group + (1|id) + (1|school), 
               data = df1, 
-              verbose=TRUE)
+              verbose=FALSE)
 
 summary(m.nb)
 ## The neg.binomial theta parameter:
