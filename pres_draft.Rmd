@@ -1,8 +1,13 @@
 ---
-title: "pres_draft"
-author: "Yuqi Miao ym2771"
-date: "4/21/2022"
-output: ioslides_presentation
+title: |
+  | P9185 - Project 3: 
+  | Protocol of a Cluster-randomized trial for Asthma-PASS
+author: |
+  | Amy Pitts, Yuqi Miao
+date: "2022-04-25"
+output:
+  beamer_presentation:
+    theme: "Madrid"
 ---
 
 ```{r setup, include=FALSE}
@@ -28,11 +33,11 @@ knitr::opts_chunk$set(echo = FALSE)
 whether Children in schools receiving Asthma-PASS intervention may experience a greater improvement in the number of SFD at 6 **or** 12 months follow up than the children in the AM comparison group. 
 
 # Data exploration 
-* see the data distribution
-  * barplot at each time point -- verify poisson might be less reasonable
-  * barplot for 6 v.s. baseline and 12 v.s. baseline -- see distribution to verify normal trend -- middle high, 2 tail low
-  * sphagetti plot to disprove the linear trend
-  * Box/point plot for intra-class correlation visualization, facet by month. (https://dcricollab.dcri.duke.edu/sites/NIHKR/KR/Intraclass_Correlation_Coefficient_Cheat_Sheet_March_15_2020.pdf)
+* barplot at each time point -- verify poisson might be less reasonable
+* barplot for 6 v.s. baseline and 12 v.s. baseline -- see distribution to verify normal trend -- middle high, 2 tail low
+  * equal variance plot -- see if the control/trt group have roughly equan variance to decide 2 sample t test with equal/unequal var (continous) 
+* sphagetti plot to disprove the linear trend
+* Box/point plot for intra-class correlation visualization, facet by month. (https://dcricollab.dcri.duke.edu/sites/NIHKR/KR/Intraclass_Correlation_Coefficient_Cheat_Sheet_March_15_2020.pdf)
 
 # Analysis for the pilot study
 * Paired proportion test (binomial) / Paired T test (continuous, normal) 
@@ -49,4 +54,24 @@ whether Children in schools receiving Asthma-PASS intervention may experience a 
 * Primary hypothesis: compared to the control group, children in schools randomized to intervention group will experience a greater improvement in the number of SFD at **any of the 3, 6, 9, and 12 months** assessment. 
 
 * The investigators would like to have at **80% probability** to declare the trial is successful if the true effect size in **improvement of SFD over time** is **at least 1/3 standard deviation**. 
+
+# Study design proposal:
+
+**3 level structure**:[1]
+
+$$
+y_{ijk} = \beta_0+\delta_{(3)}X_{ijk}+\mu_i+\mu_{j_{i}}+e_{ijk} 
+$$
+
+* i for school, j for subjects, k for measures
+* $\mu_i \sim N(0, \sigma_3^2)$ random intercept for school
+* $\mu_{j_{i}}\sim N(0, \sigma_2^2)$ random intercept for school random intercept for subject
+* randomize on school level, $X_{ijk} = X_i = 0/1$ indicating the control/intervention
+* Hypothesis: $H_0: \delta_{(3)} = 0$,$H_1: \delta_{(3)} \neq 0$
+  * **Q**: $H_1: \delta_{(3)} > 0?$
+* calculate N based on normal distribution, with multiple adjustment: $\alpha* = \alpha/4 = 0.025/4$ for the 4 comparison;
+  * **Q**: Need multiple adjustment or not?
+* $\beta = 0.2$
+  
+
 

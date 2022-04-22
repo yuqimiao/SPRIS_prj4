@@ -57,3 +57,47 @@ g_cor = symmat_heatmap(cor(sfd),
 ```
 
 * Not very informative
+
+# GLMM fitting
+
+
+$$
+\begin{aligned}
+\log\frac{\pi_{ijk}}{1-\pi_{ijk}}&=\beta_0\\
+&+\beta_1t_{ijk}\\
+&+\beta_2I(\text{trt}=1)_i\\\
+&+\gamma_{0j}\\
+&+\epsilon_{ijk}
+\end{aligned}
+$$
+
+
+
+Model 1 continuous t, 
+Model 2 discrete t
+
+```{r}
+# random intercept model
+data_fit = data %>% 
+  mutate(time_categ = factor(time, levels = 1:3,
+                             labels = c("base","6m", "12m")))
+fit1 <- glmer(cbind(sfd, 14-sfd)~ group*time +(1|school) +(1|id), 
+                  family = 'binomial', data = data_fit)
+summary(fit1) 
+
+fit2 <- glmer(cbind(sfd, 14-sfd)~ group*time_categ + (1|school) +(1|id), 
+                  family = 'binomial', data = data_fit)
+summary(fit2) 
+```
+
+
+```{r}
+fit3 <- glmer(sfd ~ school + group*time +(1|id),  # not converge +(1|school)
+                  family = 'poisson', data = data_fit)
+summary(fit3) 
+
+fit4 <- glmer(sfd ~ school + group*time_categ +(1|id), # not converge +(1|school)
+                  family = 'poisson',data = data_fit)
+summary(fit4) 
+```
+

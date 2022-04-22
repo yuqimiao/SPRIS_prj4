@@ -87,6 +87,8 @@ sp_sfd = data %>%
   geom_line()+
   geom_point()+
   facet_grid(.~school)
+
+sp_sfd
 ```
 
 * by sp_sfd, no clear linear trend along time, not appropriate to treat time as continuous variable
@@ -132,58 +134,62 @@ summary(g)$coefficients
 
 ```{r}
 vc = as_tibble(VarCorr(g))
-rho = vc$sdcor[[2]]/(vc$sdcor[[2]]+vc$sdcor[[1]])
+sigma2_2 = vc$vcov[[1]]
+sigma2_3 = vc$vcov[[2]]
+sigma2_e = vc$vcov[[3]]
 ```
 
+### if assuming 2 level
+```{r}
+rho = sigma2_3/(sigma2_2+sigma2_3)
+```
 
-# GLMM fitting
-
-
-$$
-\begin{aligned}
-\log\frac{\pi_{ijk}}{1-\pi_{ijk}}&=\beta_0\\
-&+\beta_1t_{ijk}\\
-&+\beta_2I(\text{trt}=1)_i\\\
-&+\gamma_{0j}\\
-&+\epsilon_{ijk}
-\end{aligned}
-$$
-
-
-
-Model 1 continuous t, 
-Model 2 discrete t
+### if assuming 3 level
 
 ```{r}
-# random intercept model
-data_fit = data %>% 
-  mutate(time_categ = factor(time, levels = 1:3,
-                             labels = c("base","6m", "12m")))
-fit1 <- glmer(cbind(sfd, 14-sfd)~ group*time +(1|school) +(1|id), 
-                  family = 'binomial', data = data_fit)
-summary(fit1) 
-
-fit2 <- glmer(cbind(sfd, 14-sfd)~ group*time_categ + (1|school) +(1|id), 
-                  family = 'binomial', data = data_fit)
-summary(fit2) 
+rho1 = (sigma2_2+sigma2_3)/(sigma2_2+sigma2_3+sigma2_e)
+rho2 = (sigma2_3)/(sigma2_2+sigma2_3+sigma2_e)
 ```
 
-
-```{r}
-fit3 <- glmer(sfd ~ school + group*time +(1|id),  # not converge +(1|school)
-                  family = 'poisson', data = data_fit)
-summary(fit3) 
-
-fit4 <- glmer(sfd ~ school + group*time_categ +(1|id), # not converge +(1|school)
-                  family = 'poisson',data = data_fit)
-summary(fit4) 
-```
 
 
 # Study design
 
-If using continuous outcome: statistics: $\bar X \sim N(\mu_i, \sigma^2)$
+## If using continuous outcome and 3 level structure:[1]
 
+$$
+y_{ijk} = \beta_0+\delta_{(3)}X_{ijk}+\mu_i+\mu_{j_{i}}+e_{ijk} 
+$$
+
+* i for school, j for subjects, k for measures
+* $\mu_i \sim N(0, \sigma_3^2)$ random intercept for school
+* $\mu_{j_{i}}\sim N(0, \sigma_2^2)$ random intercept for school random intercept for subject
+* randomize on school level, $X_{ijk} = X_i = 0/1$ indicating the control/intervention
+* Hypothesis: $H_0: \delta_{(3)} = 0$,$H_1: \delta_{(3)} \neq 0$
+  * **Q**: $H_1: \delta_{(3)} > 0?$
+* calculate N based on normal distribution, with multiple adjustment: $\alpha* = \alpha/4 = 0.05/4 = 0.0125$ for the 4 comparison;
+* $\beta = 0.2$
+
+$$
+N_2 = \frac{2(1+(\rho_1-\rho_2)N_1-\rho_1)Z_{\alpha, \beta}^2}{N_1N_3\Delta^2-2\rho_2N_1Z_{\alpha, \beta}^2}
+$$
+
+```{r}
+alpha_star = 0.025/4 # multiple test adjust
+# alpha_star = 0.025 # no multiple test adjust
+beta = 0.2
+z_ab = -qnorm(alpha_star)-qnorm(beta)
+delta = 1/3
+N3 = 15
+N1 = 4
+N2 = (2*(1+(rho1-rho2)*N1-rho1)*z_ab^2)/(N1*N3*delta^2-2*rho2*N1*z_ab^2)
+N_star = N3*N2
+```
+
+
+## If using continuous outcome and 2 level structure: 
+
+* $\bar X \sim N(\mu_i, \sigma^2)$
 * Hypothesis: $H_0: \mu_i-\mu_c \leq\frac{\sigma^2}{3}$, $H_1: \mu_i-\mu_c>\frac{\sigma^2}{3}$
   * Assuming equal variance?
 * calculate N based on normal distribution, with multiple adjustment: $\alpha* = \alpha/4 = 0.05/4 = 0.0125$ for the 4 comparison;
@@ -192,8 +198,8 @@ If using continuous outcome: statistics: $\bar X \sim N(\mu_i, \sigma^2)$
 * calculate ICC: $\rho=\frac{S_b^2}{S_b^2+S_w^2}$
 
 ```{r}
-N = (4*(-qnorm(0.0125)-qnorm(0.2))^2/(1/3)^2)/2
-m = (1-rho)/(30/N-rho)
+N = (2*(-qnorm(0.0125)-qnorm(0.2))^2/(1/3)^2)
+m = (1-rho)/(15/N-rho)
 N_star = N*(1+(m-1)*rho)
 ```
 
@@ -202,7 +208,9 @@ N_star = N*(1+(m-1)*rho)
 
 
 
+# resource
 
+[1]Ahn, C., Heo, M., & Zhang, S. (2014). Sample size calculations for clustered and longitudinal outcomes in clinical research. CRC Press.
 
 
 
