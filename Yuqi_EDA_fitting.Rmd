@@ -60,12 +60,11 @@ sum_dc = data_change %>%
 
 data_change %>% 
   # filter(compare == "m6_m0") %>% 
-  ggplot(aes(x = sfd_change, fill = group))+
+  ggplot(aes(x = log(sfd_change), fill = group))+
   # geom_histogram()+
   geom_density(alpha = 0.5)+
-  geom_vline(data = sum_dc, aes(xintercept = mean,color = group))+
+  geom_vline(data = sum_dc, aes(xintercept = median,color = group))+
   facet_grid(compare~.)
-
 ```
 
 * Truely a normal like distribution, but with right tail
@@ -103,6 +102,12 @@ data_change %>%
   facet_grid(.~compare)
 ```
 
+```{r}
+data_change %>% 
+  ggplot(aes(x = school, y = time1, color = group))+
+  geom_boxplot()
+```
+
 * Both btw/within group correlation
 
 
@@ -112,6 +117,7 @@ data_change %>%
 ```{r}
 g = lmer(sfd_change~group*compare +(1|school)+(1|id), 
            data = data_change)
+g = lmer(sfd_change~time1+group+compare +(1|id)+(1|school), data = data_change, REML = T)
 # g = lmer(sfd_change~group*compare +(1|school)+(1|id), 
 #            data = data_change %>% 
 #            mutate(compare = factor(compare, levels = c("m12_m0","m6_m0"))))
@@ -135,7 +141,8 @@ summary(g)$coefficients
 ```{r}
 vc = as_tibble(VarCorr(g))
 sigma2_2 = vc$vcov[[1]]
-sigma2_3 = vc$vcov[[2]]
+# sigma2_3 = vc$vcov[[2]]
+sigma2_3=0.4
 sigma2_e = vc$vcov[[3]]
 ```
 
@@ -149,6 +156,7 @@ rho = sigma2_3/(sigma2_2+sigma2_3)
 ```{r}
 rho1 = (sigma2_2+sigma2_3)/(sigma2_2+sigma2_3+sigma2_e)
 rho2 = (sigma2_3)/(sigma2_2+sigma2_3+sigma2_e)
+# rho2 = 0.05
 ```
 
 
@@ -175,8 +183,8 @@ N_2 = \frac{2(1+(\rho_1-\rho_2)N_1-\rho_1)Z_{\alpha, \beta}^2}{N_1N_3\Delta^2-2\
 $$
 
 ```{r}
-alpha_star = 0.025/4 # multiple test adjust
-# alpha_star = 0.025 # no multiple test adjust
+# alpha_star = 0.025/4 # multiple test adjust
+alpha_star = 0.025 # no multiple test adjust
 beta = 0.2
 z_ab = -qnorm(alpha_star)-qnorm(beta)
 delta = 1/3
