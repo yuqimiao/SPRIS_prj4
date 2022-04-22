@@ -85,7 +85,7 @@ df %>%
     group = ifelse(group == 0 , "Control", "Intervention")
   ) %>% 
   ggplot(aes(x=sfd, fill = group))+
-  geom_histogram(position = "identity", alpha = 0.7) +
+  geom_histogram(position = "identity") +
   facet_grid(group~time_int) +
   labs(
     title = "Symptom free Asthma days by School ",

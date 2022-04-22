@@ -1,0 +1,382 @@
+---
+title: "final_models"
+author: "Amy Pitts"
+date: '2022-04-22'
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readxl)
+library(tidyverse)
+library(gtsummary)
+library(mice)
+library(lme4)
+library("lmerTest")
+library(broom.mixed)
+
+```
+
+## Load Data
+
+```{r}
+df = read_excel("Proj 4 data.xlsx") %>%
+  janitor::clean_names() %>%
+  mutate(
+    group = factor(group),
+    time_int = case_when(
+      time == 1 ~ "baseline",
+      time == 2 ~ "6-month",
+      time == 3 ~ "12-month"
+    ),
+    time_int = factor(time_int, levels = c("baseline", "6-month","12-month")),
+    school = factor(school)
+  ) %>%
+  separate(id, c("id", "one"), sep="_") %>%
+  select(-one) %>%
+  mutate(id = as.numeric(id))
+df %>% head()
+
+```
+
+## Visualize Data 
+
+```{r}
+df %>%
+  mutate(
+    group = ifelse(group == 0 , "Control", "Intervention"),
+    school = case_when(
+      school == 1 ~ "School 1",
+      school == 2 ~ "School 2",
+      school == 3 ~ "School 3",
+      school == 4 ~ "School 4",
+    )
+  ) %>% 
+  ggplot(aes(y=sfd, x=time_int, group=id, color = group))+
+  geom_point() +
+  geom_line() +
+  facet_wrap(~school) +
+  labs(
+    title = "Symptom free Asthma days by School ",
+    y = "Symptom free days in the past two weeks",
+    color = "Group",
+    x = "Time "
+  )
+
+```
+
+```{r}
+df %>%
+  mutate(
+    group = ifelse(group == 0 , "Control", "Intervention")
+  )  %>%
+  ggplot(aes(x=sfd, fill=group)) +
+  geom_bar()+
+  facet_grid(time_int~group) +
+  labs(
+    title = "Symptom free Asthma days by Group and Time ",
+    x = "Symptom free days in the past two weeks",
+    fill = "Group"
+  )
+```
+
+
+```{r}
+df_transform <- df %>%
+  select(-time_int) %>% 
+  pivot_wider(
+    names_from = time,
+    names_prefix = "obs",
+    values_from = sfd 
+  ) %>% 
+  mutate(
+    diff_6month = obs2 - obs1,
+    diff_12month = obs3- obs1
+  ) %>% 
+  rename(baseline = obs1) %>% 
+  select(-c(obs2, obs3)) %>%
+  pivot_longer(
+    c(diff_6month, diff_12month),
+    names_to = "time",
+    names_prefix = "diff_",
+    values_to = "sfd_change" 
+  ) %>%
+  mutate(
+    time = factor(time, levels = c("6month", "12month"))
+  )
+
+df_transform %>%
+  ggplot(aes(x=time, y=sfd_change, group = id, color= group)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(~school)
+```
+
+## Data Trasform 
+
+```{r}
+data_change = df %>% 
+  pivot_wider(id_cols = c(id, school,group),
+              names_from = time,
+              values_from = sfd,
+              names_prefix = "time"
+              ) %>% 
+  mutate(m6_m0 = time2-time1,
+         m12_m0 = time3-time1) %>% 
+  pivot_longer(c(m6_m0, m12_m0),
+               names_to = "compare",
+               values_to = "sfd_change") %>% 
+  mutate(compare = factor(compare, levels = c("m6_m0", "m12_m0")))
+
+sum_dc = data_change %>% 
+  group_by(compare, group) %>% 
+  summarize(mean = mean(sfd_change, na.rm = T),
+            median = median(sfd_change, na.rm = T)) %>% 
+  mutate(
+    compare = ifelse(compare == "m6_m0", "Month 6 - Baseline", "Month 12 - Baseline"),
+    compare = factor(compare, levels = c("Month 6 - Baseline", "Month 12 - Baseline"))
+  )
+
+data_change %>% 
+  mutate(
+    compare = ifelse(compare == "m6_m0", "Month 6 - Baseline", "Month 12 - Baseline"),
+    compare = factor(compare, levels = c("Month 6 - Baseline", "Month 12 - Baseline"))
+  ) %>% 
+  ggplot(aes(x = sfd_change, fill = group))+
+  # geom_histogram()+
+  geom_density(alpha = 0.5)+
+  geom_vline(data = sum_dc, aes(xintercept = median,color = group))+
+  facet_grid(compare~.) +
+  labs(
+    title = "Density of the Changing in SFD by Time and Group",
+    x = "Change in SFD"
+  )
+```
+
+
+```{r}
+data_change %>%
+  mutate(
+    compare = ifelse(compare == "m6_m0", "Month 6 - Baseline", "Month 12 - Baseline"),
+    compare = factor(compare, levels = c("Month 6 - Baseline", "Month 12 - Baseline")),
+    group = ifelse(group == 0 , "Control", "Intervention"),
+    school = case_when(
+      school == 1 ~ "School 1",
+      school == 2 ~ "School 2",
+      school == 3 ~ "School 3",
+      school == 4 ~ "School 4",
+    )
+  ) %>% 
+  ggplot(aes(x=school, y=sfd_change, color = group)) +
+  geom_boxplot()+
+  facet_grid(.~compare) +
+  labs(
+    title = "Changing in SFD by Time, Group and School",
+    y = "Change in SFD",
+    x = "School",
+    color = "Group"
+  )
+```
+
+
+```{r}
+df %>%
+  select(-time_int) %>% 
+  pivot_wider(
+    names_from = time,
+    names_prefix = "obs",
+    values_from = sfd 
+  ) %>% 
+  mutate(
+    `Change_6months` = obs2 - obs1,
+    `Change_12months` = obs3- obs1
+  ) %>% 
+  rename(baseline = obs1) %>% 
+  select(-c(obs2, obs3)) %>% 
+  mutate(
+    school = case_when(
+      school == 1 ~ "School 1",
+      school == 2 ~ "School 2",
+      school == 3 ~ "School 3",
+      school == 4 ~ "School 4",
+    ),
+    school = factor( school, 
+                     levels = c("School 1", "School 3", "School 2", "School 4"))
+  ) %>% 
+  select(-c(group,id)) %>% 
+  tbl_summary(by=school) %>% 
+  add_overall() %>%
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Group Control**") %>%
+  modify_spanning_header(c("stat_3", "stat_4") ~ "**Group Intervention**") #%>%
+
+
+```
+
+
+```{r}
+# compare = ifelse(compare == "m6_m0", "Month 6 - Baseline", "Month 12 - Baseline"),
+#     compare = factor(compare, levels = c("Month 6 - Baseline", "Month 12 - Baseline")),
+
+ df %>%
+  select(-time_int) %>% 
+  pivot_wider(
+    names_from = time,
+    names_prefix = "obs",
+    values_from = sfd 
+  ) %>% 
+  mutate(
+    `Month 6 - Baseline` = obs2 - obs1,
+    `Month 12 - Baseline` = obs3- obs1
+  ) %>% 
+  rename(Baseline = obs1) %>% 
+  select(-c(obs2, obs3)) %>% 
+  mutate(
+    school = case_when(
+      school == 1 ~ "School 1",
+      school == 2 ~ "School 2",
+      school == 3 ~ "School 3",
+      school == 4 ~ "School 4",
+    ),
+    school = factor( school, levels = c("School 1", "School 3", "School 2", "School 4"))
+  ) %>% 
+  select(-c(group,id, school)) %>%
+  md.pattern(rotate.names = TRUE)
+```
+
+
+```{r}
+data_change = data_change %>% 
+  rename(baseline = time1)
+
+# data_change <- data_change %>% mutate(
+#   compare = ifelse(compare == "m6_m0", "Month 6 - Baseline", "Month 12 - Baseline"),
+#     compare = factor(compare, levels = c("Month 6 - Baseline", "Month 12 - Baseline")),
+#     group = ifelse(group == 0 , "Control", "Intervention")
+# )
+```
+
+
+
+## Model Fitting Pilot Study 
+
+### With Baseline 
+```{r}
+mod1 <- lmer(sfd_change ~ baseline + group + compare + group*compare + 
+               (1|school) + (1|id), 
+             data = data_change)
+
+results_m1 <- mod1 %>% broom::tidy() 
+
+mod1 %>% tbl_regression()
+
+
+results_m1 %>% filter(effect == "fixed") %>%
+  select(-c(effect, group, statistic, df)) %>%
+  mutate(across(where(is.numeric), round, 3)) %>%
+  knitr::kable()
+
+results_m1 %>% filter(effect == "ran_pars") %>%
+  select(-c(term, effect, std.error, statistic, df, p.value)) %>%
+  rename(Std.Dev = estimate) %>%
+  mutate(Variance = (Std.Dev)^2) %>%
+  mutate(across(where(is.numeric), round, 3)) %>%
+  knitr::kable()
+```
+
+
+
+### Without Baseline 
+```{r}
+
+mod2 <- lmer(sfd_change ~  group + compare + group*compare + 
+               (1|school) + (1|id), 
+             data = data_change)
+
+results_m2 <- mod2 %>% broom::tidy() 
+
+mod2 %>% tbl_regression()
+
+
+results_m2 %>% filter(effect == "fixed") %>%
+  select(-c(effect, group, statistic, df)) %>%
+  mutate(across(where(is.numeric), round, 3)) %>%
+  knitr::kable()
+
+results_m2 %>% filter(effect == "ran_pars") %>%
+  select(-c(term, effect, std.error, statistic, df, p.value)) %>%
+  rename(Std.Dev = estimate) %>%
+  mutate(Variance = (Std.Dev)^2) %>%
+  mutate(across(where(is.numeric), round, 3)) %>%
+  knitr::kable()
+
+```
+
+## Estimation of ICC
+```{r}
+vc1 = as_tibble(VarCorr(mod1))
+
+sigma2_2 = vc1$vcov[[1]]
+sigma2_3 = vc1$vcov[[2]]
+sigma2_e = vc1$vcov[[3]]
+
+# 3 levels 
+mod1.rho1 = (sigma2_2+sigma2_3)/(sigma2_2+sigma2_3+sigma2_e)
+mod1.rho2 = (sigma2_3)/(sigma2_2+sigma2_3+sigma2_e)
+cbind(mod1.rho1,mod1.rho2)
+```
+
+```{r}
+vc2 = as_tibble(VarCorr(mod2))
+
+sigma2_2 = vc2$vcov[[1]]
+sigma2_3 = vc2$vcov[[2]]
+sigma2_e = vc2$vcov[[3]]
+
+# 3 levels 
+mod2.rho1 = (sigma2_2+sigma2_3)/(sigma2_2+sigma2_3+sigma2_e)
+mod2.rho2 = (sigma2_3)/(sigma2_2+sigma2_3+sigma2_e)
+cbind(mod2.rho1,mod2.rho2)
+```
+
+
+## Sample Size Calc 
+
+```{r}
+ 
+three_level_samp_size <- function(rho1, rho2) {
+  alpha_star = 0.025/4 # multiple test adjust
+  #alpha_star = 0.025 # no multiple test adjust
+  beta = 0.2
+  z_ab = -qnorm(alpha_star)-qnorm(beta)
+  delta = 1/3
+  N3 = 15
+  N1 = 4
+  N2 = (2*(1+(rho1-rho2)*N1-rho1)*z_ab^2)/(N1*N3*delta^2-2*rho2*N1*z_ab^2)
+  N_star = N3*N2
+  return(data.frame(rho1, rho2, N2, N_star))
+}
+
+rho <- data.frame(
+  rho1 = c(mod1.rho1, mean(c(mod1.rho1,mod2.rho1)), mod2.rho1),
+  rho2 = c(mod1.rho2, mean(c(mod1.rho2,mod2.rho2)), mod2.rho2)
+)
+
+map_dfr(1:3, function(i) three_level_samp_size(rho[i,]$rho1, rho[i,]$rho2)) %>%
+  mutate(across(where(is.numeric), round, 3)) %>%
+  rename(class_size = N2,
+         group_size = N_star) %>%
+  mutate(
+    total_samp = group_size*2
+  ) %>%knitr::kable()
+
+```
+
+
+
+
+
+
+
+
+
