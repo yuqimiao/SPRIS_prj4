@@ -1,0 +1,52 @@
+---
+title: "pres_draft"
+author: "Yuqi Miao ym2771"
+date: "4/21/2022"
+output: ioslides_presentation
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Background
+
+* There is a need for comprehensive school-based interventions in collaboration with communities to reduce asthma morbidity and promote PA in urban minority children with persistent asthma.
+
+* Focused intervention -- Asthma-PASS: intervention program that includes collaborations with primary care physicians (PCPs) for promoting availability of guideline-based preventive medications and rescue medication at schools, with community health workers (CHW) to deliver education for children, caregivers, and with school personnel to encourage physical activity. 
+
+# Pilot study
+
+* a pilot cluster-RCT (i.e., the unit of randomization is school, NOT students) of Asthma-PASS in four Bronx elementary schools with 108 asthmatic children in total. 
+* 4 Bronx elementary schools were recruited into the pilot study. 
+* Study recruited 108 children aged 4-11 years with physician-diagnosed persistent or uncontrolled asthma attending kindergarten to 5th grades from the 4 Bronx elementary schools
+* The four elementary schools were randomly assigned into Asthma-PASS intervention group (2 schools) or AM comparison group (2 schools). 
+* The participated children were followed at 6 and 12 months after baseline.
+
+## Study goal
+
+whether Children in schools receiving Asthma-PASS intervention may experience a greater improvement in the number of SFD at 6 **or** 12 months follow up than the children in the AM comparison group. 
+
+# Data exploration 
+* see the data distribution
+  * barplot at each time point -- verify poisson might be less reasonable
+  * barplot for 6 v.s. baseline and 12 v.s. baseline -- see distribution to verify normal trend -- middle high, 2 tail low
+  * sphagetti plot to disprove the linear trend
+  * Box/point plot for intra-class correlation visualization, facet by month. (https://dcricollab.dcri.duke.edu/sites/NIHKR/KR/Intraclass_Correlation_Coefficient_Cheat_Sheet_March_15_2020.pdf)
+
+# Analysis for the pilot study
+* Paired proportion test (binomial) / Paired T test (continuous, normal) 
+* For 6 months v.s. baseline, compair pass v.s. control
+* For 12 months v.s. baseline, compair pass v.s. control
+* Multiple adjustment
+* Describe and comment on the effect sizes.
+* Estimate intra class variation
+
+# Cluster RCT design
+
+*	The investigators wish to propose a **cluster-randomized clinical trial (RCT)** in 30 Bronx schools to evaluate the effectiveness of their intervention program. 
+
+* Primary hypothesis: compared to the control group, children in schools randomized to intervention group will experience a greater improvement in the number of SFD at **any of the 3, 6, 9, and 12 months** assessment. 
+
+* The investigators would like to have at **80% probability** to declare the trial is successful if the true effect size in **improvement of SFD over time** is **at least 1/3 standard deviation**. 
+

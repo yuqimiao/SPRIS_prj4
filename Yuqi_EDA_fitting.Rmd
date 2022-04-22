@@ -12,57 +12,128 @@ library(lme4)
 library(lmerTest)
 library(reshape2)
 library(nlme)
-
-```
-
-```{r}
 data = readxl::read_xlsx("Proj 4 data.xlsx") %>% 
-  janitor::clean_names()
+  janitor::clean_names() %>% 
+  mutate(group = factor(group, levels = c(0,1), labels = c("SOC", "Intervention")),
+         school = factor(school))
 ```
 
-## Baseline heatmap
 
-```{r, include = F}
-symmat_heatmap = function(mat, name, size){
-  dat = as_tibble(mat) %>%
-    mutate(rows = colnames(mat))
-  dat_melt = as_tibble(melt(dat)) %>%
-    mutate(rows = factor(rows))
-  g = ggplot(data=dat_melt,
-             aes(x = variable, y = rows, fill = value)) +
-    geom_tile() +
-    theme(axis.text.x = element_text(angle = 45, hjust = 1, size = size),
-          axis.text.y = element_text(angle = 45, hjust = 1, size = size))+
-    xlim(levels(dat_melt$rows))+
-    ggtitle(name) + scale_fill_gradient2(low="blue",mid = "white", high="red")
-  g
-}
-```
+# Data exploration 
 
-This heatmap aims to see the correlation/covariance between individuals in the same school at baseline to get a initial understanding of the intra-cluster correlaiton
+## barplot at each time point
+
+verify poisson might be less reasonable
 ```{r}
-data_cov = data %>% 
-  pivot_wider(names_from = time,
-              values_from = sfd,
-              id_cols = c(id, school),
-              names_prefix = "time") %>% 
-  filter(!is.na(time1) & !is.na(time2) & !is.na(time3)) %>% 
-  # remove all subjects with NAs
-  arrange(school)
-
-sfd = t(data_cov[,3:5])
-colnames(sfd) = data_cov$id
-
-g_cov = symmat_heatmap(cov(sfd), 
-               name = "Covariance of sfd aligned by school",
-               size = 5)
-
-g_cor = symmat_heatmap(cor(sfd), 
-               name = "Correlation of sfd aligned by school",
-               size = 5)
+data %>% 
+  ggplot(aes(x = sfd))+
+  geom_bar()+
+  facet_grid(time~group)
 ```
 
-* Not very informative
+* heavy tail, not appropriate for poisson count
+
+## barplot for 6 v.s. baseline and 12 v.s. baseline 
+
+* 2 goal:
+  * see distribution to verify normal trend -- middle high, 2 tail low
+  * see if the control/trt group have roughly equan variance to decide 2 sample t test with equal/unequal var (continous) 
+
+```{r}
+data_change = data %>% 
+  pivot_wider(id_cols = c(id, school,group),
+              names_from = time,
+              values_from = sfd,
+              names_prefix = "time"
+              ) %>% 
+  mutate(m6_m0 = time2-time1,
+         m12_m0 = time3-time1) %>% 
+  pivot_longer(c(m6_m0, m12_m0),
+               names_to = "compare",
+               values_to = "sfd_change") %>% 
+  mutate(compare = factor(compare, levels = c("m6_m0", "m12_m0")))
+
+sum_dc = data_change %>% 
+  group_by(compare, group) %>% 
+  summarize(mean = mean(sfd_change, na.rm = T),
+            median = median(sfd_change, na.rm = T))
+
+data_change %>% 
+  # filter(compare == "m6_m0") %>% 
+  ggplot(aes(x = sfd_change, fill = group))+
+  # geom_histogram()+
+  geom_density(alpha = 0.5)+
+  geom_vline(data = sum_dc, aes(xintercept = mean,color = group))+
+  facet_grid(compare~.)
+
+```
+
+* Truely a normal like distribution, but with right tail
+* different vairance: larger variance in the intervention group!
+
+## sphagetti plot 
+
+Goal: Disprove the linear trend and conduct the analysis using time as categorical/ independent measures
+
+```{r}
+sp_dc = data_change %>% 
+  ggplot(aes(x = compare, y = sfd_change, color = group, group = id))+
+  geom_line()+
+  geom_point()+
+  facet_grid(.~school)
+
+sp_sfd = data %>% 
+  ggplot(aes(x = time, y = sfd,color = group, group = id))+
+  geom_line()+
+  geom_point()+
+  facet_grid(.~school)
+```
+
+* by sp_sfd, no clear linear trend along time, not appropriate to treat time as continuous variable
+
+
+* Box/point plot for intra-class correlation visualization, facet by month. (https://dcricollab.dcri.duke.edu/sites/NIHKR/KR/Intraclass_Correlation_Coefficient_Cheat_Sheet_March_15_2020.pdf)
+
+```{r}
+data_change %>% 
+  ggplot(aes(x = school, y = sfd_change, color = group))+
+  geom_boxplot()+
+  facet_grid(.~compare)
+```
+
+* Both btw/within group correlation
+
+
+# Pilot study analysis
+
+
+```{r}
+g = lmer(sfd_change~group*compare +(1|school)+(1|id), 
+           data = data_change)
+# g = lmer(sfd_change~group*compare +(1|school)+(1|id), 
+#            data = data_change %>% 
+#            mutate(compare = factor(compare, levels = c("m12_m0","m6_m0"))))
+
+summary(g)
+# texreg::texreg(g)
+confint(g)
+```
+
+```{r}
+summary(g)$coefficients
+```
+
+* Conclusion: 
+  * When comparing the 6 months and baseline, The increase of sfd in intervention group is 1.67(-0.69, 4.00) more than the increase of sfd in the treatment group
+  * When comparing the 12 months and baseline, The increase of sfd in intervention group is 1.40(-0.76 3.63) more than the increase of sfd in the treatment group
+  * No significant improvement from intervention group;
+  
+## estimation of ICC
+
+```{r}
+vc = as_tibble(VarCorr(g))
+rho = vc$sdcor[[2]]/(vc$sdcor[[2]]+vc$sdcor[[1]])
+```
 
 
 # GLMM fitting
@@ -109,12 +180,24 @@ summary(fit4)
 ```
 
 
+# Study design
+
+If using continuous outcome: statistics: $\bar X \sim N(\mu_i, \sigma^2)$
+
+* Hypothesis: $H_0: \mu_i-\mu_c \leq\frac{\sigma^2}{3}$, $H_1: \mu_i-\mu_c>\frac{\sigma^2}{3}$
+  * Assuming equal variance?
+* calculate N based on normal distribution, with multiple adjustment: $\alpha* = \alpha/4 = 0.05/4 = 0.0125$ for the 4 comparison;
+* $\beta = 0.2$
+* $2N = \frac{4(Z_\alpha*+Z_{\beta})}{(1/3)^2} = \frac{4*(2.241403+0.8416212)}{(1/3)^2}$
+* calculate ICC: $\rho=\frac{S_b^2}{S_b^2+S_w^2}$
 
 ```{r}
-
+N = (4*(-qnorm(0.0125)-qnorm(0.2))^2/(1/3)^2)/2
+m = (1-rho)/(30/N-rho)
+N_star = N*(1+(m-1)*rho)
 ```
 
-
+* In each treat arm, we need `r N_star` samples, indicating `r m` samples per school
 
 
 
