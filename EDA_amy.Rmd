@@ -142,31 +142,6 @@ So the 3 people that have missing obs for all `sfd` are just going to be exclude
 
 As long as the people have baseline obs then we can used them. So 14 people with have observations extrapolated. 
 
-We want to compare Group Intervention vs Group Control. 
-
-Let the observations be denoted 
-
-$$Y_{ij} = 1, \dots, n \ \ (\textrm{main unit}); \ \  j=1, \dots, m_i \ \ (\textrm{subunit})$$
-Note that $m_1 \not= m_2$ so that that main units do not contain the same number of subunits. 
-
-A random effect model is useful to induce to induce the correlation among the subunits as follows: 
-
-$$Y_{ij} = \mu_i + e_{ij}$$
-
-$ \mu_i$ and $e_{ij}$ are independent. 
-
-The between-cluster variability is: $E[\mu_i] = \mu_y$, $Var(\mu_i) = \sigma_b^2$
-
-The within-cluster, between-subunit variability is: $E[e_{ij}] = 0$, $Var(e_{ij}) = \sigma^2_w $
-
-Thus the total variance of an observation $Y_{ij}$ and the covariance between observations is $Y_{ij}$ and $Y_{ik}$ within the $i$th cluster are 
-
-$$Var(Y_{ij}) = \sigma^2 = \sigma^2_b + \sigma^2_w$$
-
-$$Cov(Y_{ij}, Y_{ik}) = Var (\mu_i) = \sigma_b^2$$
-Thus the correlation among subunits within a cluster equals $\rho = \frac{\sigma^2_b}{\sigma^2}$. This correlation is the same across all subunits and is called the compoind symmetry model in the repeated measures context. 
-
-
 
 ### Binomial Model 
 
@@ -194,80 +169,56 @@ Where $\alpha_{0i}$ and $\alpha_{0j}$ are random intercept for subject and schoo
 ## Time as Continous
 
 ```{r}
-
-m.p <- glmer(sfd ~ school + group + time + time * group + (1|id) + (1|school), 
-              data = df, 
+m.p <- glmer(sfd ~  group + time + time * group + (1|id) + (1|school),
+              data = df,
               family = poisson)
-summary(m.p)
+#summary(m.p)
 
 
-m.nb <- glmer.nb(sfd ~ school + group + time + time * group + (1|id) + (1|school), 
-              data = df, 
+m.b <- glmer(cbind(sfd, 14-sfd) ~  group + time + time * group + (1|id) + (1|school),
+              data = df,
+              family = binomial)
+#summary(m.b)
+
+
+m.nb <- glmer.nb(sfd ~ group + time + time * group + (1|id) + (1|school),
+              data = df,
               verbose=FALSE)
+#summary(m.nb)
 
-summary(m.nb)
-## The neg.binomial theta parameter:
-#getME(m.nb, "glmer.nb.theta")
-
-var_names = c("intercept", "school2", "school3", "school4", "time", "group1:time")
-mod.nb <- summary(m.nb)
-mod.p <- summary(m.p)
-
-est_nb_df = mod.nb$coefficients %>% as_tibble() %>%
-  janitor::clean_names() %>% 
-  mutate(var_names = var_names) %>%
-  relocate(var_names) %>%
-  rename(est_nb = estimate,
-         p_nb = pr_z) %>%
-  select(var_names, est_nb, p_nb)
-est_nb_p = mod.p$coefficients %>% as_tibble() %>%
-   janitor::clean_names() %>% 
-  mutate(var_names = var_names) %>%
-  relocate(var_names) %>%
-  rename(est_p = estimate,
-         p_p = pr_z) %>%
-  select(var_names, est_p, p_p)
-
-full_join(est_nb_df, est_nb_p, by="var_names") %>% 
-  mutate_at(2:5, round, 3)
-```
-
-```{r}
-m.p <- glmer(sfd ~  group + time + time * group + (1|id) + (1|school), 
-              data = df, 
-              family = poisson)
-summary(m.p)
-
-
-m.nb <- glmer.nb(sfd ~ group + time + time * group + (1|id) + (1|school), 
-              data = df, 
-              verbose=FALSE)
-
-summary(m.nb)
 ## The neg.binomial theta parameter:
 #getME(m.nb, "glmer.nb.theta")
 
 var_names = c("intercept", "group1", "time", "group1:time")
 mod.nb <- summary(m.nb)
+mod.b <- summary(m.b)
 mod.p <- summary(m.p)
 
 est_nb_df = mod.nb$coefficients %>% as_tibble() %>%
-  janitor::clean_names() %>% 
+  janitor::clean_names() %>%
   mutate(var_names = var_names) %>%
   relocate(var_names) %>%
   rename(est_nb = estimate,
          p_nb = pr_z) %>%
   select(var_names, est_nb, p_nb)
-est_nb_p = mod.p$coefficients %>% as_tibble() %>%
-   janitor::clean_names() %>% 
+est_b_df = mod.b$coefficients %>% as_tibble() %>%
+  janitor::clean_names() %>%
+  mutate(var_names = var_names) %>%
+  relocate(var_names) %>%
+  rename(est_b = estimate,
+         p_b = pr_z) %>%
+  select(var_names, est_b, p_b)
+est_p_df = mod.p$coefficients %>% as_tibble() %>%
+   janitor::clean_names() %>%
   mutate(var_names = var_names) %>%
   relocate(var_names) %>%
   rename(est_p = estimate,
          p_p = pr_z) %>%
   select(var_names, est_p, p_p)
 
-full_join(est_nb_df, est_nb_p, by="var_names") %>% 
-  mutate_at(2:5, round, 3)
+full_join(est_b_df, est_p_df, by="var_names") %>%
+  full_join(est_nb_df, by = "var_names") %>% 
+  mutate_at(2:7, round, 3)
 ```
 
 
@@ -275,82 +226,166 @@ full_join(est_nb_df, est_nb_p, by="var_names") %>%
 
 ```{r}
 df1 = df %>% mutate(time = factor(time))
-m.p <- glmer(sfd ~  school + time + time * group + (1|id) + (1|school), 
-              data = df1, 
+m.p <- glmer(sfd ~  group + time + time * group + (1|id) + (1|school),
+              data = df1,
               family = poisson)
-summary(m.p)
+#summary(m.p)
+
+m.b <- glmer(cbind(sfd, 14-sfd) ~  group + time + time * group + (1|id) + (1|school),
+              data = df1,
+              family = binomial)
+#summary(m.b)
 
 
-m.nb <- glmer.nb(sfd ~ school + time + time * group + (1|id) + (1|school), 
-              data = df1, 
+m.nb <- glmer.nb(sfd ~ group + time + time * group + (1|id) + (1|school),
+              data = df1,
               verbose=FALSE)
 
-summary(m.nb)
-## The neg.binomial theta parameter:
-#getME(m.nb, "glmer.nb.theta")
+#summary(m.nb)
 
-var_names = c("intercept", "school2","school3","school4", "time2", "time3", "group1:time2","group1:time3")
-mod.nb <- summary(m.nb)
-mod.p <- summary(m.p)
-
-est_nb_df = mod.nb$coefficients %>% as_tibble() %>%
-  janitor::clean_names() %>% 
-  mutate(var_names = var_names) %>%
-  relocate(var_names) %>%
-  rename(est_nb = estimate,
-         p_nb = pr_z) %>%
-  select(var_names, est_nb, p_nb)
-est_nb_p = mod.p$coefficients %>% as_tibble() %>%
-   janitor::clean_names() %>% 
-  mutate(var_names = var_names) %>%
-  relocate(var_names) %>%
-  rename(est_p = estimate,
-         p_p = pr_z) %>%
-  select(var_names, est_p, p_p)
-
-full_join(est_nb_df, est_nb_p, by="var_names") %>% 
-  mutate_at(2:5, round, 3)
-```
-
-
-```{r}
-df1 = df %>% mutate(time = factor(time))
-m.p <- glmer(sfd ~  group + time + time * group + (1|id) + (1|school), 
-              data = df1, 
-              family = poisson)
-summary(m.p)
-
-
-m.nb <- glmer.nb(sfd ~ group + time + time * group + (1|id) + (1|school), 
-              data = df1, 
-              verbose=FALSE)
-
-summary(m.nb)
 ## The neg.binomial theta parameter:
 #getME(m.nb, "glmer.nb.theta")
 
 var_names = c("intercept", "group1", "time2", "time3", "group1:time2","group1:time3")
 mod.nb <- summary(m.nb)
+mod.b <- summary(m.b)
 mod.p <- summary(m.p)
 
 est_nb_df = mod.nb$coefficients %>% as_tibble() %>%
-  janitor::clean_names() %>% 
+  janitor::clean_names() %>%
   mutate(var_names = var_names) %>%
   relocate(var_names) %>%
   rename(est_nb = estimate,
          p_nb = pr_z) %>%
   select(var_names, est_nb, p_nb)
-est_nb_p = mod.p$coefficients %>% as_tibble() %>%
-   janitor::clean_names() %>% 
+est_b_df = mod.b$coefficients %>% as_tibble() %>%
+  janitor::clean_names() %>%
+  mutate(var_names = var_names) %>%
+  relocate(var_names) %>%
+  rename(est_b = estimate,
+         p_b = pr_z) %>%
+  select(var_names, est_b, p_b)
+est_p_df = mod.p$coefficients %>% as_tibble() %>%
+   janitor::clean_names() %>%
   mutate(var_names = var_names) %>%
   relocate(var_names) %>%
   rename(est_p = estimate,
          p_p = pr_z) %>%
   select(var_names, est_p, p_p)
 
-full_join(est_nb_df, est_nb_p, by="var_names") %>% 
-  mutate_at(2:5, round, 3)
+full_join(est_b_df, est_p_df, by="var_names") %>%
+  full_join(est_nb_df, by = "var_names")  %>%
+  mutate_at(2:7, round, 3)
 ```
+
+
+## Transform to Continous outcome 
+
+Section 4.7 (Comparing Ordinal Endpoints by Wilcoxon-Mann-whitney Test) of my book says that if there are 5 or more categories, one can assign a score to each category and treat the change from the baseline of the score as a continous variable. Then we can apply the Equation 4.4. 
+
+Since the ordinal outcome of interest is symptom free days a larger value is better becuase it implies that more of the days were spent without any symptoms. Since larger is better the score I will be assigning to each of the categories is an idenitiy map to the day value. 
+```{r}
+df_transform <- df %>%
+  select(-time_int) %>% 
+  pivot_wider(
+    names_from = time,
+    names_prefix = "obs",
+    values_from = sfd 
+  ) %>% 
+  mutate(
+    diff_6month = obs2 - obs1,
+    diff_12month = obs3- obs1
+  ) %>% 
+  rename(baseline = obs1) %>% 
+  select(-c(obs2, obs3)) %>%
+  pivot_longer(
+    c(diff_6month, diff_12month),
+    names_to = "time",
+    names_prefix = "diff_",
+    values_to = "sfd_change" 
+  ) %>%
+  mutate(
+    time = factor(time, levels = c("6month", "12month"))
+  )
+
+df_transform %>%
+  ggplot(aes(x=time, y=sfd_change, group = id, color= group)) +
+  geom_point() +
+  geom_line() +
+  facet_grid(~school)
+```
+
+Now I can fit a regular mixed effect model using this change as a continuous outcome 
+
+```{r}
+library("lmerTest")
+mod1 <- lmer(sfd_change ~ baseline + group + time + group*time + (1|school)  + (1|id), 
+             data = df_transform)
+
+# mod1 <- lmer(sfd_change ~ group + time + group*time + (1|school) + (1|id), 
+#              data = df_transform)
+
+summary(mod1)
+```
+
+```{r}
+#group = ifelse(group == 0 , "Control", "Intervention")
+ df %>%
+  select(-time_int) %>% 
+  pivot_wider(
+    names_from = time,
+    names_prefix = "obs",
+    values_from = sfd 
+  ) %>% 
+  mutate(
+    `Change_6months` = obs2 - obs1,
+    `Change_12months` = obs3- obs1
+  ) %>% 
+  rename(baseline = obs1) %>% 
+  select(-c(obs2, obs3)) %>% 
+  mutate(
+    school = case_when(
+      school == 1 ~ "School 1",
+      school == 2 ~ "School 2",
+      school == 3 ~ "School 3",
+      school == 4 ~ "School 4",
+    ),
+    school = factor( school, 
+                     levels = c("School 1", "School 3", "School 2", "School 4"))
+  ) %>% 
+  select(-c(group,id)) %>% 
+  tbl_summary(by=school) %>% 
+  add_overall() %>%
+  modify_spanning_header(c("stat_1", "stat_2") ~ "**Group Control**") %>%
+  modify_spanning_header(c("stat_3", "stat_4") ~ "**Group Intervention**") #%>%
+
+
+ df %>%
+  select(-time_int) %>% 
+  pivot_wider(
+    names_from = time,
+    names_prefix = "obs",
+    values_from = sfd 
+  ) %>% 
+  mutate(
+    `Change_6months` = obs2 - obs1,
+    `Change_12months` = obs3- obs1
+  ) %>% 
+  rename(baseline = obs1) %>% 
+  select(-c(obs2, obs3)) %>% 
+  mutate(
+    school = case_when(
+      school == 1 ~ "School 1",
+      school == 2 ~ "School 2",
+      school == 3 ~ "School 3",
+      school == 4 ~ "School 4",
+    ),
+    school = factor( school, levels = c("School 1", "School 3", "School 2", "School 4"))
+  ) %>% 
+  select(-c(group,id, school)) %>%
+  md.pattern(rotate.names = TRUE)
+```
+
 
 
 
@@ -362,5 +397,86 @@ full_join(est_nb_df, est_nb_p, by="var_names") %>%
 
 [Resource:](https://www.ncss.com/wp-content/themes/ncss/pdf/Procedures/PASS/Mixed_Models_Tests_for_Two_Means_in_a_2-Level_Hierarchical_Design-Level-2_Randomization.pdf)
 
+
+### From the textbook: 
+
+We want to compare Group Intervention vs Group Control. 
+
+Let the observations be denoted 
+
+$$Y_{ij} = 1, \dots, n \ \ (\textrm{main unit}); \ \  j=1, \dots, m_i \ \ (\textrm{subunit})$$
+
+By design we want to set up $m_i= m$ so that all the main units contain the same number of subunits. 
+
+A random effect model is useful to induce the correlation among the subunits as follows: 
+
+$$Y_{ij} = \mu_i + e_{ij}$$
+
+$ \mu_i$ and $e_{ij}$ are independent. 
+
+- The between-cluster variability is: $E[\mu_i] = \mu_y$, $Var(\mu_i) = \sigma_b^2$
+
+- The within-cluster, between-subunit variability is: $E[e_{ij}] = 0$, $Var(e_{ij}) = \sigma^2_w $
+
+Thus the total variance of an observation $Y_{ij}$ and the covariance between observations is $Y_{ij}$ and $Y_{ik}$ within the $i$th cluster are 
+
+$$Var(Y_{ij}) = \sigma^2 = \sigma^2_b + \sigma^2_w$$
+
+$$Cov(Y_{ij}, Y_{ik}) = Var (\mu_i) = \sigma_b^2$$
+Thus the correlation among subunits within a cluster equals 
+$\rho = \frac{\sigma^2_b}{\sigma^2}$. This correlation is the same across all subunits and is called the compound symmetry model in the repeated measures context. 
+
+We model the data from group $X$ the same way, except that $E[\mu_i]=\mu_x$ for clusters of $X$. 
+
+We can now use the formula used for means for continuous outcomes
+
+$$n= \frac{2\sigma^2 [1+(m-1)\rho](z_{\alpha / 2} + z_{\beta})^2}{m\Delta^2}$$ 
+
+- $m$ we need to find this
+- $\beta$ = 1- power
+- $\Delta$ mean difference between the two groups and is given by the problem (1/3) 
+- $\rho = \frac{\sigma^2_b}{\sigma^2}$
+- $\alpha$ need to do a bonforini correction for the 4 observations points 
+- $z_{\alpha/2}$, $z_{\beta}$ based on the normal distribution 
+
+```{r}
+
+mod1 <- lmer(sfd_change ~ baseline + group + time + group*time + (1|school)  + (1|id),
+             data = df_transform)
+
+mod1 <- lmer(sfd_change ~  group + time + group*time + (1|school)  + (1|id),
+             data = df_transform)
+# summary(mod1)
+
+# given by the directions 
+k = 4 # number of assessments 
+n =  30/2 # number of schools 
+beta = 0.2 # 1 - power = 1 - 0.8
+alpha = 0.05 / (2*k) # bonforinit adjustment 
+delta = 1/3 
+z.alpha = qnorm(1-alpha)
+z.beta = qnorm(1-beta)
+
+# given by the model
+m1 = summary(mod1)
+sig = m1$varcor %>% as.data.frame() %>% pull(vcov)
+sigma.b = sig[2] # between-cluster variability 
+sigma.w = sig[1] # within cluster between sub unit variability 
+sigma = sigma.b + sigma.w
+rho = sigma.b / sigma
+rho
+
+# putting it all together to find m 
+m = (2*(1-rho)*((z.alpha + z.beta)^2))/(n*(delta^2) - 2*rho*(z.alpha + z.beta)^2)
+n = (2*(1+(m-1)*rho)*(z.alpha + z.beta)^2)/(m*(delta^2))
+cbind(m, 15*m)
+
+
+N = (2*(z.alpha+ z.beta)^2/(delta)^2)
+m = (1-rho)/(15/N-rho)
+N_star = N*(1+(m-1)*rho)
+cbind(N_star, m)
+
+```
 
 
