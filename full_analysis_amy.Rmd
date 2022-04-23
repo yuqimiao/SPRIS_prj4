@@ -281,7 +281,8 @@ results_m1 %>% filter(effect == "ran_pars") %>%
   rename(Std.Dev = estimate) %>%
   mutate(Variance = (Std.Dev)^2) %>%
   mutate(across(where(is.numeric), round, 3)) %>%
-  knitr::kable()
+  knitr::kable() %>%
+  kableExtra::kable_styling()
 ```
 
 

@@ -8,36 +8,310 @@ date: "2022-04-25"
 output:
   beamer_presentation:
     theme: "Madrid"
+    fonttheme: "structurebold"
+    incremental: false
+    latex_engine: xelatex
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(echo = TRUE)
+
+library(readxl)
+library(tidyverse)
+library(gtsummary)
+library(mice)
+library(lme4)
+library("lmerTest")
+library(broom.mixed)
+
+df = read_excel("Proj 4 data.xlsx") %>%
+  janitor::clean_names() %>%
+  mutate(
+    group = factor(group),
+    time_int = case_when(
+      time == 1 ~ "baseline",
+      time == 2 ~ "6-month",
+      time == 3 ~ "12-month"
+    ),
+    time_int = factor(time_int, levels = c("baseline", "6-month","12-month")),
+    school = factor(school)
+  ) %>%
+  separate(id, c("id", "one"), sep="_") %>%
+  select(-one) %>%
+  mutate(id = as.numeric(id))
+
 ```
+
 
 # Background
 
-* There is a need for comprehensive school-based interventions in collaboration with communities to reduce asthma morbidity and promote PA in urban minority children with persistent asthma.
+Our interest is in persistent asthma in minority children. 
 
-* Focused intervention -- Asthma-PASS: intervention program that includes collaborations with primary care physicians (PCPs) for promoting availability of guideline-based preventive medications and rescue medication at schools, with community health workers (CHW) to deliver education for children, caregivers, and with school personnel to encourage physical activity. 
+* Comprehensive school-based interventions in collaboration with communities to reduce asthma morbidity and promote physical activity in urban areas.
 
-# Pilot study
+* A pilot cluster RCT was conducted exploring this intervention in Bronx elementary schools
+  - **Goal:** whether Children in schools receiving Asthma-PASS intervention may experience a greater improvement in the number of SFD at 6 **or** 12 months follow up than the children in the comparison group. 
+  - 4 Bronx elementary schools were recruited into the pilot study. 
+  - A total of 108 children recruited including ages 4-11 years with physician-diagnosed persistent or uncontrolled asthma attending kindergarten to 5th grades 
 
-* a pilot cluster-RCT (i.e., the unit of randomization is school, NOT students) of Asthma-PASS in four Bronx elementary schools with 108 asthmatic children in total. 
-* 4 Bronx elementary schools were recruited into the pilot study. 
-* Study recruited 108 children aged 4-11 years with physician-diagnosed persistent or uncontrolled asthma attending kindergarten to 5th grades from the 4 Bronx elementary schools
-* The four elementary schools were randomly assigned into Asthma-PASS intervention group (2 schools) or AM comparison group (2 schools). 
-* The participated children were followed at 6 and 12 months after baseline.
 
-## Study goal
+# Overview 
 
-whether Children in schools receiving Asthma-PASS intervention may experience a greater improvement in the number of SFD at 6 **or** 12 months follow up than the children in the AM comparison group. 
+1. Data Overview 
+2. Exploration into Pilot Study data
 
-# Data exploration 
+  - Model Specifications
+  - Results 
+  
+3. Phase III Proposal
+
+  - Model Specifications
+  - Sample Size Suggestions
+  
+
+# Data Overview 
+
+```{r echo=FALSE, message=FALSE, warning=FALSE}
+variable_info <- tibble(
+  Variable = c("ID","Time", "Group", "SFD", "School"),
+  Definition =c(
+    "Participant's ID",
+    "Follow up time (Baseline, 6 months, 12 months)",
+    "Intervention group (control or Intervention)",
+    "Symptom free days in the past two weeks",
+    "School recruited for the study"
+  )
+)
+
+variable_info %>% knitr::kable()
+```
+
+\centering 
+*Table 1:* Data Descriptions 
+
+
+
+
+# Data Exploration 
+
+```{r echo=FALSE, fig.height=6, message=FALSE, warning=FALSE}
+df %>%
+  mutate(
+    group = ifelse(group == 0 , "Control", "Intervention")
+  )  %>%
+  ggplot(aes(x=sfd, fill=group)) +
+  geom_bar()+
+  facet_grid(time_int~group) +
+  labs(
+    title = "Symptom free Asthma days by Group and Time ",
+    x = "Symptom free days in the past two weeks",
+    fill = "Group"
+  )
+```
+
+
+# Data Exploration 
+
+```{r echo=FALSE, fig.height=6, message=FALSE, warning=FALSE}
+df %>%
+  mutate(
+    group = ifelse(group == 0 , "Control", "Intervention"),
+    school = case_when(
+      school == 1 ~ "School 1",
+      school == 2 ~ "School 2",
+      school == 3 ~ "School 3",
+      school == 4 ~ "School 4",
+    )
+  ) %>% 
+  ggplot(aes(y=sfd, x=time_int, group=id, color = group))+
+  geom_point() +
+  geom_line() +
+  facet_wrap(~school) +
+  labs(
+    title = "Symptom free Asthma days by School ",
+    y = "Symptom free days in the past two weeks",
+    color = "Group",
+    x = "Time "
+  )
+```
+
+
+# Data Exploration 
+
+**Current outcome:** SFD (Count data)
+
+- Due to the skewed distribution towards higher values a poisson model will not fit our data well
+- Outcome does not seem linear over the time observations. 
+
+*Interested in the change from baseline to observation times.* 
+
+**New outcome:** Change in SFD (Continuous Data)
+
+- Transform the SFD by calculated: 
+  * 6 month observation - baseline 
+  * 12 month observation - baseline 
+- Baseline with become covariate
+
+
+# New Continous Outcome
+
+```{r echo=FALSE, fig.height=6, message=FALSE, warning=FALSE}
+data_change = df %>% 
+  pivot_wider(id_cols = c(id, school,group),
+              names_from = time,
+              values_from = sfd,
+              names_prefix = "time"
+              ) %>% 
+  mutate(m6_m0 = time2-time1,
+         m12_m0 = time3-time1) %>% 
+  pivot_longer(c(m6_m0, m12_m0),
+               names_to = "compare",
+               values_to = "sfd_change") %>% 
+  mutate(compare = factor(compare, levels = c("m6_m0", "m12_m0")))
+
+sum_dc = data_change %>% 
+  group_by(compare, group) %>% 
+  summarize(mean = mean(sfd_change, na.rm = T),
+            median = median(sfd_change, na.rm = T)) %>% 
+  mutate(
+    compare = ifelse(compare == "m6_m0", "Month 6 - Baseline", "Month 12 - Baseline"),
+    compare = factor(compare, levels = c("Month 6 - Baseline", "Month 12 - Baseline"))
+  )
+
+data_change %>% 
+  mutate(
+    compare = ifelse(compare == "m6_m0", "Month 6 - Baseline", "Month 12 - Baseline"),
+    compare = factor(compare, levels = c("Month 6 - Baseline", "Month 12 - Baseline"))
+  ) %>% 
+  ggplot(aes(x = sfd_change, fill = group))+
+  # geom_histogram()+
+  geom_density(alpha = 0.5)+
+  geom_vline(data = sum_dc, aes(xintercept = median,color = group))+
+  facet_grid(compare~.) +
+  labs(
+    title = "Density of the Changing in SFD by Time and Group",
+    x = "Change in SFD"
+  )
+```
+
+
+# Exploring variation between school and within school 
+
+```{r echo=FALSE, fig.height=6, message=FALSE, warning=FALSE}
+data_change %>%
+  mutate(
+    compare = ifelse(compare == "m6_m0", "Month 6 - Baseline", "Month 12 - Baseline"),
+    compare = factor(compare, levels = c("Month 6 - Baseline", "Month 12 - Baseline")),
+    group = ifelse(group == 0 , "Control", "Intervention"),
+    school = case_when(
+      school == 1 ~ "School 1",
+      school == 2 ~ "School 2",
+      school == 3 ~ "School 3",
+      school == 4 ~ "School 4",
+    )
+  ) %>% 
+  ggplot(aes(x=school, y=sfd_change, color = group)) +
+  geom_boxplot()+
+  facet_grid(.~compare) +
+  labs(
+    title = "Changing in SFD by Time, Group and School",
+    y = "Change in SFD",
+    x = "School",
+    color = "Group"
+  )
+```
+
+# Missing Data
+
+```{r echo=FALSE, fig.height=4, message=FALSE, warning=FALSE, fig.align='center'}
+ df %>%
+  select(-time_int) %>% 
+  pivot_wider(
+    names_from = time,
+    names_prefix = "obs",
+    values_from = sfd 
+  ) %>% 
+  mutate(
+    `Month 6 - Baseline` = obs2 - obs1,
+    `Month 12 - Baseline` = obs3- obs1
+  ) %>% 
+  rename(Baseline = obs1) %>% 
+  select(-c(obs2, obs3)) %>% 
+  mutate(
+    school = case_when(
+      school == 1 ~ "School 1",
+      school == 2 ~ "School 2",
+      school == 3 ~ "School 3",
+      school == 4 ~ "School 4",
+    ),
+    school = factor( school, levels = c("School 1", "School 3", "School 2", "School 4"))
+  ) %>% 
+  select(-c(group,id, school)) %>%
+  md.pattern(rotate.names = TRUE)
+```
+
+# Model Specifications
+
+To model change in SFD let school $i \in(1,2,3,4)$, individual $j$, time interval $k \in (1,2)$. 
+
+We will used mixed effect model. 
+
+\begin{align*}
+Y_{ijk} &= \beta_0 + \beta_1 Baseline_{ij} \\
+&+ \beta_2 Group_{ij} + \beta_3 Compare_{ijk} \\
+& + \beta_4 Group_{ij}\times Compare_{ijk} \\
+&+ \alpha_{0i} + \alpha_{0j} + \epsilon_{ijk} 
+\end{align*}
+
+where $\alpha_{0i} \sim N(0, \sigma^2_w)$,  $\alpha_{0j} \sim N(0, \sigma^2_b)$,  and $\epsilon_{ijk} \sim N(0, \sigma^2)$. 
+
+# Missing Data Assumptions
+
+We will be assuming data is missing at random (MAR)$^{[1]}$. 
+
+- MAR assumption: $R {\perp \!\!\! \perp}Y_{mis}|X,Y_{obs}$
+- Separable parameter assumption
+- Ignorability condition
+
+$$
+\begin{aligned}
+L_{i}^{\mathrm{O}}(\theta, \psi) & \propto f_{\theta, \psi}\left(Y_{\mathrm{obs}, i}, R_{i}, X_{i}\right) \\
+&=f_{\psi}\left(R_{i} \mid Y_{\mathrm{obs} , i}, X_{i}\right) f_{\theta}\left(Y_{\mathrm{obs}, i} \mid X_{i}\right)
+\end{aligned}
+$$
+
+
+# Model Result 
+
+\begin{columns}
+  \begin{column}{0.48\textwidth}
+    \textbf{Fixed Effects Estimates:}
+    \centering 
+    \includegraphics{mod1_est.png}
+  \end{column}
+  \begin{column}{0.48\textwidth}
+  \centering 
+   \textbf{Random Effects Estimates:}
+    \includegraphics{mod1_random_est.png} \\
+    \textbf{Model Interpretations:}
+    \begin{enumerate}
+    \item interpretations
+    \item interpretations
+    \item interpretations
+    \end{enumerate}
+  \end{column}
+\end{columns}
+*Note*: This model is singular
+
+
+
+<!--
+# temp
 * barplot at each time point -- verify poisson might be less reasonable
 * barplot for 6 v.s. baseline and 12 v.s. baseline -- see distribution to verify normal trend -- middle high, 2 tail low
   * equal variance plot -- see if the control/trt group have roughly equan variance to decide 2 sample t test with equal/unequal var (continous) 
 * sphagetti plot to disprove the linear trend
-* Box/point plot for intra-class correlation visualization, facet by month. (https://dcricollab.dcri.duke.edu/sites/NIHKR/KR/Intraclass_Correlation_Coefficient_Cheat_Sheet_March_15_2020.pdf)
+* Box/point plot for intra-class correlation visualization, facet by month. (https://dcricollab.dcri.duke.edu/sites/NIHKR/KR/Intraclass_Correlation_Coefficient_Cheat_Sheet_March_15_2020.pdf)-->
 
 # Analysis for the pilot study
 * Paired proportion test (binomial) / Paired T test (continuous, normal) 
@@ -74,4 +348,7 @@ $$
 * $\beta = 0.2$
   
 
+# Resources 
+
+[1] Hogan, J. W., Roy, J., & Korkontzelou, C. (2004). Handling drop-out in longitudinal studies. Statistics in Medicine, 23(9), 1455–1497. https://doi.org/10.1002/sim.1728
 
