@@ -85,9 +85,13 @@ sp_sfd = data %>%
   ggplot(aes(x = time, y = sfd,color = group, group = id))+
   geom_line()+
   geom_point()+
+  stat_summary(aes(group = school),
+               geom = "line",
+               fun.y = mean, color ="black")+
   facet_grid(.~school)
 
 sp_sfd
+ggsave(file = "plots/sphagettie_school_time.png")
 ```
 
 * by sp_sfd, no clear linear trend along time, not appropriate to treat time as continuous variable
@@ -115,12 +119,15 @@ data_change %>%
 
 
 ```{r}
-g = lmer(sfd_change~group*compare +(1|school)+(1|id), 
-           data = data_change)
-g = lmer(sfd_change~time1+group+compare +(1|id)+(1|school), data = data_change, REML = T)
 # g = lmer(sfd_change~group*compare +(1|school)+(1|id), 
-#            data = data_change %>% 
-#            mutate(compare = factor(compare, levels = c("m12_m0","m6_m0"))))
+#            data = data_change)
+g = lmer(sfd_change~time1+group*compare+(1|id)+(1|school), data = data_change, REML = T)
+# 
+# data = data %>% 
+#   mutate(time = factor(time))
+# g = lmer(sfd~time+group+time*group+(1|id)+(1|school), data = data, REML = T)
+
+
 
 summary(g)
 # texreg::texreg(g)
@@ -141,8 +148,8 @@ summary(g)$coefficients
 ```{r}
 vc = as_tibble(VarCorr(g))
 sigma2_2 = vc$vcov[[1]]
-# sigma2_3 = vc$vcov[[2]]
-sigma2_3=0.4
+sigma2_3 = vc$vcov[[2]]
+# sigma2_3=0.4
 sigma2_e = vc$vcov[[3]]
 ```
 
@@ -183,20 +190,22 @@ N_2 = \frac{2(1+(\rho_1-\rho_2)N_1-\rho_1)Z_{\alpha, \beta}^2}{N_1N_3\Delta^2-2\
 $$
 
 ```{r}
-# alpha_star = 0.025/4 # multiple test adjust
-alpha_star = 0.025 # no multiple test adjust
+# alpha_star = 0.05 # multiple test adjust
+alpha_star = 0.025/4 # multiple test adjust
+# alpha_star = 0.025 # no multiple test adjust
 beta = 0.2
 z_ab = -qnorm(alpha_star)-qnorm(beta)
 delta = 1/3
 N3 = 15
-N1 = 4
+# N1 = 4
+N1=1
 N2 = (2*(1+(rho1-rho2)*N1-rho1)*z_ab^2)/(N1*N3*delta^2-2*rho2*N1*z_ab^2)
 N_star = N3*N2
+N2
 ```
 
 
 ### sample size table
-
 ```{r}
 N2_calc = function(sigma2_3 = vc$vcov[[2]]){
   sigma2_2 = vc$vcov[[1]]
@@ -227,23 +236,28 @@ tibble(sigma2_3 = c(0, 0.3, 0.5)) %>%
 
 ## If using continuous outcome and 2 level structure: 
 
-* $\bar X \sim N(\mu_i, \sigma^2)$
-* Hypothesis: $H_0: \mu_i-\mu_c \leq\frac{\sigma^2}{3}$, $H_1: \mu_i-\mu_c>\frac{\sigma^2}{3}$
-  * Assuming equal variance?
-* calculate N based on normal distribution, with multiple adjustment: $\alpha* = \alpha/4 = 0.05/4 = 0.0125$ for the 4 comparison;
-* $\beta = 0.2$
-* $2N = \frac{4(Z_\alpha*+Z_{\beta})}{(1/3)^2} = \frac{4*(2.241403+0.8416212)}{(1/3)^2}$
-* calculate ICC: $\rho=\frac{S_b^2}{S_b^2+S_w^2}$
+
+A 2 level test structure
+
+$$
+y_{ij} = \beta_0+\delta X_{ij}+\mu_i+e_{ij} 
+$$
+
+* We regard each time points as a separate point, no within-individual correlation
+
+
+$$
+N_2 = \frac{2(1-\rho)Z^2_{\alpha,\phi}}{N3\Delta^2-2\rho Z^2_{\alpha,\phi}}
+$$
 
 ```{r}
-N = (2*(-qnorm(0.0125)-qnorm(0.2))^2/(1/3)^2)
-m = (1-rho)/(15/N-rho)
-N_star = N*(1+(m-1)*rho)
+N2 =(2*(1-rho)*z_ab^2)/(N3*(1/3)^2-2*rho*z_ab^2)
+N2
 ```
 
 * In each treat arm, we need `r N_star` samples, indicating `r m` samples per school
 
-
+*
 
 
 # resource
