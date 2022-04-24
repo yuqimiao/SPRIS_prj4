@@ -335,7 +335,7 @@ qqline(resid(mod1))
   
 **Two levels of Sampling**
 
-- $N_1$: Number of Indiviuals in each School *(What we want to estimate)*
+- $N_1$: Number of Individuals in each School *(What we want to estimate)*
 - $N_2$: Number of Schools for one treatment arm (15 in our case)
 
 
