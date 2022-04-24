@@ -110,30 +110,7 @@ df %>%
 ```
 
 
-# Data Exploration 
 
-```{r echo=FALSE, fig.height=6, message=FALSE, warning=FALSE}
-df %>%
-  mutate(
-    group = ifelse(group == 0 , "Control", "Intervention"),
-    school = case_when(
-      school == 1 ~ "School 1",
-      school == 2 ~ "School 2",
-      school == 3 ~ "School 3",
-      school == 4 ~ "School 4",
-    )
-  ) %>% 
-  ggplot(aes(y=sfd, x=time_int, group=id, color = group))+
-  geom_point() +
-  geom_line() +
-  facet_wrap(~school) +
-  labs(
-    title = "Symptom free Asthma days by School ",
-    y = "Symptom free days in the past two weeks",
-    color = "Group",
-    x = "Time "
-  )
-```
 
 
 # Data Exploration 
@@ -220,6 +197,11 @@ data_change %>%
     color = "Group"
   )
 ```
+
+# Data Description 
+
+![](tab1.png)
+
 
 # Missing Data
 

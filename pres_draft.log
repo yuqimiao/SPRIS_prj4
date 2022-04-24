@@ -1,4 +1,4 @@
-This is XeTeX, Version 3.14159265-2.6-0.99998 (TeX Live 2017) (preloaded format=xelatex 2017.5.23)  23 APR 2022 20:35
+This is XeTeX, Version 3.14159265-2.6-0.99998 (TeX Live 2017) (preloaded format=xelatex 2017.5.23)  23 APR 2022 20:50
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -2290,9 +2290,6 @@ Overfull \hbox (87.82536pt too wide) has occurred while \output is active
 [5
 
 ]
-File: pres_draft_files/figure-beamer/unnamed-chunk-3-1.pdf Graphic file (type Q
-Tm)
-<use  "pres_draft_files/figure-beamer/unnamed-chunk-3-1.pdf" >
 Overfull \hbox (87.82536pt too wide) has occurred while \output is active
  [][][][]  
  []
@@ -2300,6 +2297,9 @@ Overfull \hbox (87.82536pt too wide) has occurred while \output is active
 [6
 
 ]
+File: pres_draft_files/figure-beamer/unnamed-chunk-3-1.pdf Graphic file (type Q
+Tm)
+<use  "pres_draft_files/figure-beamer/unnamed-chunk-3-1.pdf" >
 Overfull \hbox (87.82536pt too wide) has occurred while \output is active
  [][][][]  
  []
@@ -2317,9 +2317,8 @@ Overfull \hbox (87.82536pt too wide) has occurred while \output is active
 [8
 
 ]
-File: pres_draft_files/figure-beamer/unnamed-chunk-5-1.pdf Graphic file (type Q
-Tm)
-<use  "pres_draft_files/figure-beamer/unnamed-chunk-5-1.pdf" >
+File: tab1.png Graphic file (type QTm)
+<use  "tab1.png" >
 Overfull \hbox (87.82536pt too wide) has occurred while \output is active
  [][][][]  
  []
@@ -2330,9 +2329,9 @@ Overfull \hbox (87.82536pt too wide) has occurred while \output is active
 \openout4 = `pres_draft.vrb'.
 
 (./pres_draft.vrb
-File: pres_draft_files/figure-beamer/unnamed-chunk-6-1.pdf Graphic file (type Q
+File: pres_draft_files/figure-beamer/unnamed-chunk-5-1.pdf Graphic file (type Q
 Tm)
-<use  "pres_draft_files/figure-beamer/unnamed-chunk-6-1.pdf" >)
+<use  "pres_draft_files/figure-beamer/unnamed-chunk-5-1.pdf" >)
 Overfull \vbox (100.77797pt too high) detected at line 271
  []
 
@@ -2411,12 +2410,12 @@ Overfull \hbox (87.82536pt too wide) has occurred while \output is active
 [13
 
 ]
-File: pres_draft_files/figure-beamer/unnamed-chunk-7-1.pdf Graphic file (type Q
+File: pres_draft_files/figure-beamer/unnamed-chunk-6-1.pdf Graphic file (type Q
 Tm)
-<use  "pres_draft_files/figure-beamer/unnamed-chunk-7-1.pdf" >
-File: pres_draft_files/figure-beamer/unnamed-chunk-7-2.pdf Graphic file (type Q
+<use  "pres_draft_files/figure-beamer/unnamed-chunk-6-1.pdf" >
+File: pres_draft_files/figure-beamer/unnamed-chunk-6-2.pdf Graphic file (type Q
 Tm)
-<use  "pres_draft_files/figure-beamer/unnamed-chunk-7-2.pdf" >
+<use  "pres_draft_files/figure-beamer/unnamed-chunk-6-2.pdf" >
 Overfull \hbox (87.82536pt too wide) has occurred while \output is active
  [][][][]  
  []
@@ -2435,12 +2434,12 @@ Overfull \hbox (87.82536pt too wide) has occurred while \output is active
 [15
 
 ]
-File: pres_draft_files/figure-beamer/unnamed-chunk-8-1.pdf Graphic file (type Q
+File: pres_draft_files/figure-beamer/unnamed-chunk-7-1.pdf Graphic file (type Q
 Tm)
-<use  "pres_draft_files/figure-beamer/unnamed-chunk-8-1.pdf" >
-File: pres_draft_files/figure-beamer/unnamed-chunk-8-2.pdf Graphic file (type Q
+<use  "pres_draft_files/figure-beamer/unnamed-chunk-7-1.pdf" >
+File: pres_draft_files/figure-beamer/unnamed-chunk-7-2.pdf Graphic file (type Q
 Tm)
-<use  "pres_draft_files/figure-beamer/unnamed-chunk-8-2.pdf" >
+<use  "pres_draft_files/figure-beamer/unnamed-chunk-7-2.pdf" >
 Overfull \hbox (87.82536pt too wide) has occurred while \output is active
  [][][][]  
  []
@@ -2501,13 +2500,6 @@ Overfull \hbox (87.82536pt too wide) has occurred while \output is active
 [23
 
 ]
-Overfull \hbox (87.82536pt too wide) has occurred while \output is active
- [][][][]  
- []
-
-[24
-
-]
 \tf@nav=\write5
 \openout5 = `pres_draft.nav'.
 
@@ -2517,19 +2509,19 @@ Overfull \hbox (87.82536pt too wide) has occurred while \output is active
 \tf@snm=\write7
 \openout7 = `pres_draft.snm'.
 
-Package atveryend Info: Empty hook `BeforeClearDocument' on input line 532.
-Package atveryend Info: Empty hook `AfterLastShipout' on input line 532.
+Package atveryend Info: Empty hook `BeforeClearDocument' on input line 511.
+Package atveryend Info: Empty hook `AfterLastShipout' on input line 511.
 (./pres_draft.aux)
-Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 532.
-Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 532.
+Package atveryend Info: Empty hook `AtVeryEndDocument' on input line 511.
+Package atveryend Info: Empty hook `AtEndAfterFileList' on input line 511.
  ) 
 Here is how much of TeX's memory you used:
- 35809 strings out of 493005
- 691819 string characters out of 6134596
- 866530 words of memory out of 5000000
- 39195 multiletter control sequences out of 15000+600000
+ 35807 strings out of 493005
+ 691746 string characters out of 6134596
+ 865474 words of memory out of 5000000
+ 39193 multiletter control sequences out of 15000+600000
  7117 words of font info for 53 fonts, out of 8000000 for 9000
  1348 hyphenation exceptions out of 8191
  58i,16n,120p,10405b,844s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on pres_draft.pdf (24 pages).
+Output written on pres_draft.pdf (23 pages).

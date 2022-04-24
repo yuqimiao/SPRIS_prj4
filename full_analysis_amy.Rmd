@@ -208,7 +208,8 @@ df %>%
   tbl_summary(by=school) %>% 
   add_overall() %>%
   modify_spanning_header(c("stat_1", "stat_2") ~ "**Group Control**") %>%
-  modify_spanning_header(c("stat_3", "stat_4") ~ "**Group Intervention**") #%>%
+  modify_spanning_header(c("stat_3", "stat_4") ~ "**Group Intervention**") %>%
+  add_p()
 
 
 ```
