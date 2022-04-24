@@ -265,17 +265,17 @@ We will be assuming data is missing at random (MAR)$^{[1]}$.
 # Model Result Fixed
 
 \begin{columns}
-  \begin{column}{0.48\textwidth}
+  \begin{column}{0.45\textwidth}
     \textbf{Fixed Effects Estimates:}
     \centering 
     \includegraphics{mod1_est.png}
   \end{column}
-  \begin{column}{0.48\textwidth}
+  \begin{column}{0.54\textwidth}
   \centering 
     \textbf{Model Interpretations:}
     \begin{enumerate}
-      \item  When comparing the 6 months and baseline, The increase of sfd in intervention group is 1.1(-0.46, 2.6) more than the increase of sfd in the treatment group.
-      \item  When comparing the 12 months and baseline, The increase of sfd in intervention group is 0.81(-1.60 2.12) more than the increase of sfd in the treatment group.
+      \item  When comparing the 6 months and baseline, The increase of sfd in intervention group is 1.1 (-0.46, 2.6) more than the increase of sfd in the treatment group.
+      \item  When comparing the 12 months and baseline, The increase of sfd in intervention group is 0.81 (-1.60, 2.12) more than the increase of sfd in the treatment group.
       \item  No significant improvement from intervention group. 
     \end{enumerate}
   \end{column}
