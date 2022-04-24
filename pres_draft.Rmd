@@ -367,7 +367,7 @@ $$
 * calculate N based on normal distribution, with multiple adjustment: $\alpha^* = \alpha/4 = 0.025/4$
 * $\beta = 0.2$
 * $N_1=N_0=15$
-* Interested in when stadardized effect size $\Delta = 1/3$
+* Interested in when standardized effect size $\Delta = 1/3$
 
 
 # Sample Size Calculation 
