@@ -257,25 +257,12 @@ Y_{ijk} &= \beta_0 + \beta_1 Baseline_{ij} \\
 &+ \alpha_{0i} + \alpha_{0j} + \epsilon_{ijk} 
 \end{align*}
 
-where $\alpha_{0i} \sim N(0, \sigma^2_w)$,  $\alpha_{0j} \sim N(0, \sigma^2_b)$,  and $\epsilon_{ijk} \sim N(0, \sigma^2)$. 
-
-# Missing Data Assumptions
+where $\alpha_{0i} \sim N(0, \sigma^2_1)$,  $\alpha_{0j} \sim N(0, \sigma^2_2)$,  and $\epsilon_{ijk} \sim N(0, \sigma^2)$. 
 
 We will be assuming data is missing at random (MAR)$^{[1]}$. 
 
-- MAR assumption: $R {\perp \!\!\! \perp}Y_{mis}|X,Y_{obs}$
-- Separable parameter assumption
-- Ignorability condition
 
-$$
-\begin{aligned}
-L_{i}^{\mathrm{O}}(\theta, \psi) & \propto f_{\theta, \psi}\left(Y_{\mathrm{obs}, i}, R_{i}, X_{i}\right) \\
-&=f_{\psi}\left(R_{i} \mid Y_{\mathrm{obs} , i}, X_{i}\right) f_{\theta}\left(Y_{\mathrm{obs}, i} \mid X_{i}\right)
-\end{aligned}
-$$
-
-
-# Model Result 
+# Model Result Fixed
 
 \begin{columns}
   \begin{column}{0.48\textwidth}
@@ -285,22 +272,32 @@ $$
   \end{column}
   \begin{column}{0.48\textwidth}
   \centering 
-   \textbf{Random Effects Estimates:}
-    \includegraphics{mod1_random_est.png} \\
     \textbf{Model Interpretations:}
     \begin{enumerate}
-    \item interpretations
-    \item interpretations
-    \item interpretations
+      \item  When comparing the 6 months and baseline, The increase of sfd in intervention group is 1.1(-0.46, 2.6) more than the increase of sfd in the treatment group.
+      \item  When comparing the 12 months and baseline, The increase of sfd in intervention group is 0.81(-1.60 2.12) more than the increase of sfd in the treatment group.
+      \item  No significant improvement from intervention group. 
     \end{enumerate}
   \end{column}
 \end{columns}
-*Note*: This model is singular
 
-* Conclusion: 
-  * When comparing the 6 months and baseline, The increase of sfd in intervention group is 1.1(-0.46, 2.6) more than the increase of sfd in the treatment group
-  * When comparing the 12 months and baseline, The increase of sfd in intervention group is 0.81(-1.60 2.12) more than the increase of sfd in the treatment group
-  * No significant improvement from intervention group;
+
+
+# Model Result Random 
+
+\begin{columns}
+  \begin{column}{0.48\textwidth}
+     \textbf{Model 1 Random Effects:}
+    \includegraphics{mod1_random_est.png} 
+  \end{column}
+  \begin{column}{0.48\textwidth}
+  Calculating the Intraclass Correlation Coefficient
+    \begin{enumerate}
+    \item $\rho = \frac{\sigma_2^2}{\sigma_2^2+\sigma^2} = \frac{0}{0+10.560} = 0$
+    \end{enumerate}
+  \end{column}
+\end{columns}
+
 
 # Model Quality 
 
@@ -392,26 +389,6 @@ $$
 z_{\alpha^*, \beta}^2 = (z_{\alpha^*/2}+z_{\beta})^2 = \left[\Phi^{-1}(1-\alpha^*/2)+\Phi^{-1}(1-\beta)^{-1}\right]^2
 $$
 
-# Intra Class Correlation in our Models 
-
-\begin{columns}
-  \begin{column}{0.48\textwidth}
-     \textbf{Model 1 Random Effects:}
-    \includegraphics{mod1_random_est.png} 
-     \begin{enumerate}
-    \item $\rho_1 = 0.286$
-    \item $\rho_2 = 0.000$
-    \end{enumerate}
-  \end{column}
-  \begin{column}{0.48\textwidth}
-   \textbf{Model 2 Random Effects:}
-    \includegraphics{mod2_random_est.png} 
-    \begin{enumerate}
-    \item $\rho_1 = 0.646$
-    \item $\rho_2 = 0.012$
-    \end{enumerate}
-  \end{column}
-\end{columns}
 
 # Sample Size Suggested 
 
