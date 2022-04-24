@@ -110,9 +110,9 @@ df %>%
 ```
 
 # Data Exploration 
-
-```{r echo=FALSE, fig.height=6, message=FALSE, warning=FALSE}
-df %>% 
+```{r}
+df
+%>% 
   ggplot(aes(x = time, y = sfd,color = group, group = id))+
   geom_line()+
   geom_point()+
@@ -122,7 +122,31 @@ df %>%
   facet_grid(.~school)
 ```
 
+* N
+# Data Exploration 
 
+```{r echo=FALSE, fig.height=6, message=FALSE, warning=FALSE}
+df %>%
+  mutate(
+    group = ifelse(group == 0 , "Control", "Intervention"),
+    school = case_when(
+      school == 1 ~ "School 1",
+      school == 2 ~ "School 2",
+      school == 3 ~ "School 3",
+      school == 4 ~ "School 4",
+    )
+  ) %>% 
+  ggplot(aes(y=sfd, x=time_int, group=id, color = group))+
+  geom_point() +
+  geom_line() +
+  facet_wrap(~school) +
+  labs(
+    title = "Symptom free Asthma days by School ",
+    y = "Symptom free days in the past two weeks",
+    color = "Group",
+    x = "Time "
+  )
+```
 
 
 # Data Exploration 
@@ -210,11 +234,6 @@ data_change %>%
   )
 ```
 
-# Data Description 
-
-![](tab1.png)
-
-
 # Missing Data
 
 ```{r echo=FALSE, fig.height=4, message=FALSE, warning=FALSE, fig.align='center'}
@@ -246,7 +265,7 @@ data_change %>%
 
 # Model Specifications
 
-To model change in SFD let $i$ for school, $j$ for subjects, $k$ for measures. 
+To model change in SFD let school $i \in(1,2,3,4)$, individual $j$, time interval $k \in (1,2)$. 
 
 We will used mixed effect model. 
 
@@ -298,122 +317,6 @@ $$
 *Note*: This model is singular
 
 
-# Model Quality 
-
-```{r echo=FALSE, out.width="48%",message=FALSE, warning=FALSE}
-data_change = data_change %>% 
-  rename(baseline = time1)
-mod1 <- lmer(sfd_change ~ baseline + group + compare + group*compare + 
-               (1|school) + (1|id), 
-             data = data_change)
-
-plot(mod1, main="Residual plot") #Residual plot of mm for lmer object
-
-qqnorm(residuals(mod1))
-qqline(resid(mod1))
-```
-
-
-
-# Cluster RCT design
-
-*	The investigators wish to propose a **cluster-randomized clinical trial (RCT)** in 30 Bronx schools to evaluate the effectiveness of their intervention program. 
-
-* Primary hypothesis: compared to the control group, children in schools randomized to intervention group will experience a greater improvement in the number of SFD at **any of the 3, 6, 9, and 12 months** assessment. 
-
-* The investigators would like to have at **80% probability** to declare the trial is successful if the true effect size in **improvement of SFD over time** is **at least 1/3 standard deviation**. 
-
-
-
-# Study design proposal:
-
-**3 level structure**$^{[2]}$:
-
-$$
-y_{ijk} = \beta_0+\delta_{(3)}X_{ijk}+\mu_i+\mu_{j}+e_{ijk} 
-$$
-
-* $i$ for school, $j$ for subjects, $k$ for measures
-* $\mu_i \sim N(0, \sigma_b^2)$ random intercept between schools
-* $\mu_{j}\sim N(0, \sigma_w^2)$ random intercept for subjects within schools
-* $e_{ijk}\sim N(0, \sigma^2)$ random error term 
-
-
-**Intraclass Correlation Coefficient**
-
-
-$$
-\rho_1 = \frac{\sigma^2_b + \sigma^2_w}{\sigma^2_b + \sigma^2_w + \sigma^2}
-\ \ \ \ \ \ \ \ \ \ \ \ \ \ \ \
-\rho_2 = \frac{\sigma^2_b }{\sigma^2_b + \sigma^2_w + \sigma^2}
-$$
-
-# Hypothesis Set Up
-
-**Hypothesis:** $H_0: \delta_{(3)} = 0$, $H_1: \delta_{(3)} \neq 0$
-
-* *Clinical Interest*: $H_1: \delta_{(3)} > 0?$
-* Calculate $N$ based on normal distribution
-* Interested in when $\beta = 0.20$, $\alpha^* = 0.05/2$ and $\Delta = 1/3$
-
-
-**Three levels of Sampling**
-
-- $N_1$: Number of Observation looks (4 in our case)
-- $N_2$: Number of Indiviuals in each School *(What we want to estimate)*
-- $N_3$: Number of Schools for one treatment arm (15 in our case)
-
-
-# Sample Size Calculation 
-
-**Sample Size formula**
-
-$$
-N_2 = \frac{2(1+(\rho_1-\rho_2)N_1-\rho_1)z_{\alpha^*, \beta}^2}{N_1N_3\Delta^2-2\rho_2N_1z_{\alpha^*, \beta}^2}
-$$
-Where $z$ is calculated based on the normal distribution.
-
-$$
-z_{\alpha^*, \beta}^2 = (z_{\alpha^*/2}+z_{\beta})^2 = \left[\Phi^{-1}(1-\alpha^*/2)+\Phi^{-1}(1-\beta)^{-1}\right]^2
-$$
-
-# Intra Class Correlation in our Models 
-
-\begin{columns}
-  \begin{column}{0.48\textwidth}
-     \textbf{Model 1 Random Effects:}
-    \includegraphics{mod1_random_est.png} 
-     \begin{enumerate}
-    \item $\rho_1 = 0.286$
-    \item $\rho_2 = 0.000$
-    \end{enumerate}
-  \end{column}
-  \begin{column}{0.48\textwidth}
-   \textbf{Model 2 Random Effects:}
-    \includegraphics{mod2_random_est.png} 
-    \begin{enumerate}
-    \item $\rho_1 = 0.646$
-    \item $\rho_2 = 0.012$
-    \end{enumerate}
-  \end{column}
-\end{columns}
-
-# Sample Size Suggested 
-
-```{r echo=FALSE, message=FALSE, warning=FALSE}
-load("samp_est.RData")
-
-samp_est %>%
-  knitr::kable()
-```
-
-  
-
-# Resources 
-
-[1] Hogan, J. W., Roy, J., & Korkontzelou, C. (2004). Handling drop-out in longitudinal studies. Statistics in Medicine, 23(9), 1455–1497. https://doi.org/10.1002/sim.1728
-
-[2] Ahn, C., Heo, M., & Zhang, S. (2014). Sample size calculations for clustered and longitudinal outcomes in clinical research. CRC Press.
 
 <!--
 # temp
@@ -421,7 +324,7 @@ samp_est %>%
 * barplot for 6 v.s. baseline and 12 v.s. baseline -- see distribution to verify normal trend -- middle high, 2 tail low
   * equal variance plot -- see if the control/trt group have roughly equan variance to decide 2 sample t test with equal/unequal var (continous) 
 * sphagetti plot to disprove the linear trend
-* Box/point plot for intra-class correlation visualization, facet by month. (https://dcricollab.dcri.duke.edu/sites/NIHKR/KR/Intraclass_Correlation_Coefficient_Cheat_Sheet_March_15_2020.pdf)
+* Box/point plot for intra-class correlation visualization, facet by month. (https://dcricollab.dcri.duke.edu/sites/NIHKR/KR/Intraclass_Correlation_Coefficient_Cheat_Sheet_March_15_2020.pdf)-->
 
 # Analysis for the pilot study
 * Paired proportion test (binomial) / Paired T test (continuous, normal) 
@@ -431,5 +334,34 @@ samp_est %>%
 * Describe and comment on the effect sizes.
 * Estimate intra class variation
 
-* with bonferroni adjustment: $\alpha^* = \alpha/4$ for the 4 comparison -->
+# Cluster RCT design
+
+*	The investigators wish to propose a **cluster-randomized clinical trial (RCT)** in 30 Bronx schools to evaluate the effectiveness of their intervention program. 
+
+* Primary hypothesis: compared to the control group, children in schools randomized to intervention group will experience a greater improvement in the number of SFD at **any of the 3, 6, 9, and 12 months** assessment. 
+
+* The investigators would like to have at **80% probability** to declare the trial is successful if the true effect size in **improvement of SFD over time** is **at least 1/3 standard deviation**. 
+
+# Study design proposal:
+
+**3 level structure**:[1]
+
+$$
+y_{ijk} = \beta_0+\delta_{(3)}X_{ijk}+\mu_i+\mu_{j_{i}}+e_{ijk} 
+$$
+
+* i for school, j for subjects, k for measures
+* $\mu_i \sim N(0, \sigma_3^2)$ random intercept for school
+* $\mu_{j_{i}}\sim N(0, \sigma_2^2)$ random intercept for school random intercept for subject
+* randomize on school level, $X_{ijk} = X_i = 0/1$ indicating the control/intervention
+* Hypothesis: $H_0: \delta_{(3)} = 0$,$H_1: \delta_{(3)} \neq 0$
+  * **Q**: $H_1: \delta_{(3)} > 0?$
+* calculate N based on normal distribution, with multiple adjustment: $\alpha* = \alpha/4 = 0.025/4$ for the 4 comparison;
+  * **Q**: Need multiple adjustment or not?
+* $\beta = 0.2$
+  
+
+# Resources 
+
+[1] Hogan, J. W., Roy, J., & Korkontzelou, C. (2004). Handling drop-out in longitudinal studies. Statistics in Medicine, 23(9), 1455–1497. https://doi.org/10.1002/sim.1728
 
