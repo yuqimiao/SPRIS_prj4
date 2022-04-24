@@ -155,7 +155,7 @@ sigma2_e = vc$vcov[[3]]
 
 ### if assuming 2 level
 ```{r}
-rho = sigma2_3/(sigma2_2+sigma2_3)
+rho = sigma2_3/(sigma2_2+sigma2_e)
 ```
 
 ### if assuming 3 level
