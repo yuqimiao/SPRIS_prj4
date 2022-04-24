@@ -357,7 +357,7 @@ $$
 
 
 $$
-\rho_1 = \frac{\sigma^2_2}{\sigma^2_2 + \sigma^2_e}
+\rho = \frac{\sigma^2_2}{\sigma^2_2 + \sigma^2_e}
 $$
 
 # Hypothesis Set Up
