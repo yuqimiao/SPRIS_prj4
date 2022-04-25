@@ -290,10 +290,25 @@ results_m1 %>% filter(effect == "ran_pars") %>%
 ### Model diagnosisc
 
 ```{r}
+library(nlme)
+df1 = data_change %>% filter(!is.na(baseline)) %>% filter(!is.na(sfd_change))
+mod1 <- lme(sfd_change ~ baseline + group + compare + group*compare ,
+            random =~1|school/id, 
+             data = df1)
+summary(mod1)
+plot(mod1)
+qqnorm(residuals(mod1))
+qqline(resid(mod1))
 
-mod1 <- lmer(sfd_change ~ baseline + group + compare + group*compare + 
+mod1a <- lmer(sfd_change ~ baseline + group + compare + group*compare + 
                (1|school) + (1|id), 
              data = data_change)
+
+mod1b <- lmer(sfd_change ~ baseline + group + compare + group*compare + 
+               (1|school/id), 
+             data = data_change)
+
+
 
 plot(mod1, main="Residual plot") #Residual plot of mm for lmer object
 
@@ -356,6 +371,7 @@ mod1.rho2 = (sigma2_3)/(sigma2_2+sigma2_3+sigma2_e)
 cbind(mod1.rho1,mod1.rho2)
 
 rho.mod1 = sigma2_3/(sigma2_e+sigma2_3)
+rho.mod1 = (0.000270758)^2 / ((0.000270758)^2+(3.249604)^2)
 rho.mod1
 ```
 

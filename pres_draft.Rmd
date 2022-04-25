@@ -87,7 +87,7 @@ variable_info %>% knitr::kable()
 ```
 
 \centering 
-*Table 1:* Data Descriptions 
+*Table 1:* Data Descriptions of Pilot Study
 
 
 
